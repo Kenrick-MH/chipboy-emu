@@ -10,6 +10,7 @@
  /**
   *  Struct defining the ROM header metadata upon loading.
   */
+
 typedef struct cart 
 {
     u8 nintendo_logo[0x30];
@@ -26,7 +27,8 @@ typedef struct cart
     u16 global_checksum;
     u8 cgb_flag :1;
     u8 sgb_flag :1;
-    
+    u8 *rom_data;
+
 } cart_meta_t;
 
 
