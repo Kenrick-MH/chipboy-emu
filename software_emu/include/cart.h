@@ -13,23 +13,34 @@
 
 typedef struct cart 
 {
-    u8 nintendo_logo[0x30];
-    char title[0x10];
-    char manu_code[4];
-    u32 rom_size;
-    u32 ram_size;
-    u8 destination_code;
-    u8 cart_type;
-    u8 old_lisencee_code;
-    u8 new_lisencee_code;
-    u8 version;
-    u8 header_checksum;
-    u16 global_checksum;
-    u8 cgb_flag :1;
-    u8 sgb_flag :1;
-    u8 *rom_data;
+    uint8_t     nintendo_logo[0x30];
+    char        title[0x10];
+    char        manu_code[4];
+    u32         rom_size;
+    u32         ram_size;
+    uint8_t     destination_code;
+    uint8_t     cart_type;
+    uint8_t     old_licensee_code;
+    char        new_licensee_code[2];
+    uint8_t     version;
+    uint8_t     header_checksum;
+    uint16_t    global_checksum;
+    uint8_t     cgb_flag;
+    uint8_t     sgb_flag;
+
+    /*
+        This would actually be the entire ROM dump,
+        since entry point is not contiguous to the rest of the code
+    */
+    uint8_t     *rom_data;
 
 } cart_meta_t;
+
+/*
+    @brief Reads a ROM buffer and writes it to METADATA.
+    @param metadata
+*/
+void read_rom_meta(cart_meta_t *metadata, const uint8_t rom_data, size_t rom_size);
 
 
 
