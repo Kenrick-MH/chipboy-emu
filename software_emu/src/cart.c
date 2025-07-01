@@ -21,8 +21,6 @@ void read_rom_meta(cart_meta_t *metadata, const uint8_t *rom_data, size_t rom_si
     
     // Need to make this poratble, since number is in big endian.
     // metadata->global_checksum = 
-    
-    return 0;
 }
 
 
