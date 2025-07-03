@@ -56,5 +56,6 @@ dkms.conf
 
 # Test ROMS (PRIVATE)
 test/test_roms/**
+*.gb
 
 

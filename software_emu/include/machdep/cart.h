@@ -160,7 +160,7 @@ const char *OLD_LICENSEE_NAMES[0x100] = {
     [0xFF] = "LJN" 
 };
 
-typedef struct cart 
+typedef struct cart_meta 
 {
     uint8_t     nintendo_logo[0x30];
     char        title[0x10];
@@ -177,19 +177,26 @@ typedef struct cart
     uint8_t     cgb_flag;
     uint8_t     sgb_flag;
 
+} cart_meta_t;
+
+typedef struct cart_data
+{
+    /* Metadata of the cartridge, see above */
+    cart_meta_t metadata;
+    
     /*
         This would actually be the entire ROM dump,
         since entry point is not contiguous to the rest of the code
     */
     uint8_t     *rom_data;
 
-} cart_meta_t;
+} cart_data_t;
 
 /*
     @brief Reads a ROM buffer and writes it to METADATA.
     @param metadata
 */
-void read_rom_meta(cart_meta_t *metadata, const uint8_t *rom_data, size_t rom_size);
+void read_rom_meta(cart_data_t *rom_data, const uint8_t *raw_buffer, size_t rom_size);
 
 /** 
  *  Prints out cart metadata in a human readable format.
@@ -199,7 +206,7 @@ void cart_print_metadata(cart_meta_t *metadata);
 /**
  *  Validates checksum of the rom stored in the metadata.
  */
-int validate_checksum(cart_meta_t *metadata);
+int validate_checksum(cart_data_t *rom_data);
 
 
 #endif
