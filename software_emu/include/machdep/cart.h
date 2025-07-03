@@ -1,4 +1,7 @@
 
+
+#ifndef CART_H
+#define CART_H
 #include <common.h>
 
 
@@ -6,10 +9,6 @@
  *  Based on the documentation in 
  *  https://gbdev.io/pandocs/The_Cartridge_Header.html
  */
-
- /**
-  *  Struct defining the ROM header metadata upon loading.
-  */
 
 const char *OLD_LICENSEE_NAMES[0x100] = {     
     [0x00] = "None",     
@@ -203,8 +202,7 @@ void cart_print_metadata(cart_meta_t *metadata);
 int validate_checksum(cart_meta_t *metadata);
 
 
-
-
+#endif
 
 
 

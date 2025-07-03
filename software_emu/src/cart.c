@@ -1,4 +1,4 @@
-#include <cart.h>
+#include <machdep/cart.h>
 #include <string.h>
 
 void read_rom_meta(cart_meta_t *metadata, const uint8_t *rom_data, size_t rom_size)

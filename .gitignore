@@ -53,3 +53,8 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Test ROMS (PRIVATE)
+test/test_roms/**
+
+
