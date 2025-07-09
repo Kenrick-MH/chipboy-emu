@@ -63,6 +63,9 @@ void instr_push(cpu_context_t *context, uint8_t r16stk);
 void instr_pop(cpu_context_t *context, uint8_t r16stk);
 
 
+void instr_ret(cpu_context_t *context);
+
+
 
 /* Ungrouped */
 void instr_cpl(cpu_context_t *context);
@@ -200,3 +203,15 @@ void instr_pop(cpu_context_t *context, uint8_t r16stk)
     context->cycles += 3;
 }
 
+void instr_ret(cpu_context_t *context)
+{
+    /* Equivalent to POP PC */
+    uint8_t reg_high, reg_low;
+    uint16_t full_val;
+
+    reg_low = bus_read(context->sp++);
+    reg_high = bus_read(context->sp++);
+
+    context->pc = REGFULL(reg_high, reg_low);
+    context->cycles += 4;
+}
