@@ -14,6 +14,12 @@ typedef int16_t i16;
 typedef int32_t i32;
 typedef int64_t i64;
 
+// For now, address types are defined here
+
+// GameBoy uses 16-bit addres space.
+typedef uint16_t addr_t; 
+
+
 /*
     Common macro defs here
 */

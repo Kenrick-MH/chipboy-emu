@@ -1,18 +1,19 @@
 #ifndef BUS_H
 #define BUS_H
 
-/**
- *  Bus/Memory related operations
+/** 
+ *  This file is responsible for managing memory reads/
+ *  writes in-between devices.
  */
 
 #include <common.h>
-
+#include <master_slave.h>
 
 typedef uint8_t addr_t;
 
-int bus_write(addr_t addr, uint8_t value);
+uint8_t bus_write(addr_t addr, uint8_t value);
 
-int bus_read(addr_t add);
+uint8_t bus_read(addr_t add);
 
 
 

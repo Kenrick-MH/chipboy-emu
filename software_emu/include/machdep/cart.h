@@ -208,6 +208,9 @@ void cart_print_metadata(cart_meta_t *metadata);
  */
 int validate_checksum(cart_data_t *rom_data);
 
+/* 
+    I think cartridge memory bank switching should go here instead of the bus
+*/
 
 #endif
 
