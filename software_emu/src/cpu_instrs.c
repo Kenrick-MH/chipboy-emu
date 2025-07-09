@@ -58,8 +58,15 @@ void instr_ld_imm();
 void instr_str();
 void instr_st_imm();
 
+/* Push/Pop */
+void instr_push(cpu_context_t *context, uint8_t r16stk);
+void instr_pop(cpu_context_t *context, uint8_t r16stk);
+
+
+
 /* Ungrouped */
 void instr_cpl(cpu_context_t *context);
+
 
 
 
@@ -142,5 +149,54 @@ void instr_cpl(cpu_context_t *context)
 {
     context->af.hi = ~context->af.hi;
     context->cycles += 1;
-
+    /* Set status bits */
 }
+
+void instr_push(cpu_context_t *context, uint8_t r16stk)
+{
+    uint16_t reg_data;
+    switch (r16stk)
+    {
+        case R16STK_BC: reg_data = context->bc.full; break;
+        case R16STK_DE: reg_data = context->de.full; break;
+        case R16STK_HL: reg_data = context->hl.full; break;
+        case R16STK_AF: reg_data = context->af.full; break;
+    
+        default:
+            break;
+    }
+    
+    /* 
+        TODO: 
+            - Handle stack overflow mechanism, for now, let the bus handle it
+    */
+
+    /* Write HIGH part */
+    bus_write(context->sp--, REGHIGH(reg_data));
+    bus_write(context->sp--, REGLOW(reg_data));
+    context->cycles += 4;
+}
+
+
+void instr_pop(cpu_context_t *context, uint8_t r16stk)
+{
+    uint8_t reg_high, reg_low;
+    uint16_t full_val;
+
+    reg_low = bus_read(context->sp++);
+    reg_high = bus_read(context->sp++);
+
+    switch (r16stk)
+    {
+        case R16STK_BC: context->bc.full = REGFULL(reg_high, reg_low); break;
+        case R16STK_DE: context->de.full = REGFULL(reg_high, reg_low); break;
+        case R16STK_HL: context->hl.full = REGFULL(reg_high, reg_low); break;
+        case R16STK_AF: context->af.full = REGFULL(reg_high, reg_low); break;
+    
+        default:
+            break;
+    }
+
+    context->cycles += 3;
+}
+

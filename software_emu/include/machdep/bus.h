@@ -13,7 +13,7 @@ typedef uint8_t addr_t;
 
 uint8_t bus_write(addr_t addr, uint8_t value);
 
-uint8_t bus_read(addr_t add);
+uint8_t bus_read(addr_t addr);
 
 
 
