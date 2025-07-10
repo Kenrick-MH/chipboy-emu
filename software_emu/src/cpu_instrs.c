@@ -97,9 +97,6 @@ void instr_jp_hl(cpu_context_t *context);
 void instr_jp_cc(cpu_context_t *context, addr_t address, uint8_t condition);
 void instr_jr_cc(cpu_context_t *context, int8_t addr_offset, uint8_t condition);
 
-void instr_ret(cpu_context_t *context);
-void instr_ret_cc(cpu_context_t *context, uint8_t condition);
-
 /* 
     Has 2 different versions, since the always variant and not taken variant have
     two differing clock cycles.
@@ -229,6 +226,46 @@ static void alu_op16(cpu_context_t *context,
 
 }
 
+/**
+ *  Check if branch is taken or not, depending on the condition.
+ *  Return a boolean indicating to take branch or not.
+ */
+static bool is_branch_taken(cpu_context_t *context, uint8_t condition)
+{
+    uint8_t prev_status = read_status(context);
+    switch (condition & 0b111)
+    {
+        case COND_C:    return CPU_STATUS_C_TEST(prev_status);  break;
+        case COND_NC:   return !CPU_STATUS_C_TEST(prev_status); break;
+        case COND_Z:    return CPU_STATUS_Z_TEST(prev_status);  break;
+        case COND_NZ:   return !CPU_STATUS_Z_TEST(prev_status); break;
+        
+        case COND_ALWAYS:
+        default:
+            return true;
+    }
+}
+
+/**
+ *  Check if branch is taken or not, depending on the condition.
+ *  Return a boolean indicating to take branch or not.
+ */
+static uint8_t pop_stack8(cpu_context_t *context)
+{
+
+}
+
+/**
+ *  Check if branch is taken or not, depending on the condition.
+ *  Return a boolean indicating to take branch or not.
+ */
+static uint8_t push_stack8(cpu_context_t *context)
+{
+
+}
+
+
+
 void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
 {
     
@@ -327,7 +364,6 @@ void instr_push(cpu_context_t *context, uint8_t r16stk)
     context->cycles += 4;
 }
 
-
 void instr_pop(cpu_context_t *context, uint8_t r16stk)
 {
     uint8_t reg_high, reg_low;
@@ -348,40 +384,6 @@ void instr_pop(cpu_context_t *context, uint8_t r16stk)
     }
 
     context->cycles += 3;
-}
-
-void instr_ret(cpu_context_t *context)
-{
-    /* Equivalent to POP PC */
-    uint8_t reg_high, reg_low;
-    uint16_t full_val;
-
-    reg_low = bus_read(context->sp++);
-    reg_high = bus_read(context->sp++);
-
-    context->pc = REGFULL(reg_high, reg_low);
-    context->cycles += 4;
-}
-
-
-/**
- *  Check if branch is taken or not, depending on the condition.
- *  Return a boolean indicating to take branch or not.
- */
-static bool is_branch_taken(cpu_context_t *context, uint8_t condition)
-{
-    uint8_t prev_status = read_status(context);
-    switch (condition & 0b111)
-    {
-        case COND_C:    return CPU_STATUS_C_TEST(prev_status);  break;
-        case COND_NC:   return !CPU_STATUS_C_TEST(prev_status); break;
-        case COND_Z:    return CPU_STATUS_Z_TEST(prev_status);  break;
-        case COND_NZ:   return !CPU_STATUS_Z_TEST(prev_status); break;
-        
-        case COND_ALWAYS:
-        default:
-            return true;
-    }
 }
 
 void instr_jp_hl(cpu_context_t *context)
@@ -411,18 +413,56 @@ void instr_jr_cc(cpu_context_t *context, int8_t addr_offset, uint8_t condition)
     context->cycles += 3;
 }
 
-
 void instr_ret(cpu_context_t *context)
 {
     /* Equivalent to POP PC */
     uint8_t reg_high, reg_low;
-    uint16_t full_val;
 
     reg_low = bus_read(context->sp++);
     reg_high = bus_read(context->sp++);
 
     context->pc = REGFULL(reg_high, reg_low);
     context->cycles += 4;
+}
+
+void instr_ret_cc(cpu_context_t *context, uint8_t condition)
+{
+    uint8_t reg_high, reg_low;
+    assert(condition != COND_ALWAYS);
+
+    /* Condition not met */
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 2;
+        return;
+    }
+
+    reg_low = bus_read(context->sp++);
+    reg_high = bus_read(context->sp++);
+
+    context->pc = REGFULL(reg_high, reg_low);
+    context->cycles += 5;
+}
+
+void instr_reti(cpu_context_t *context)
+{
+
+
+
+}
+
+void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition)
+{
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 3;
+        return;
+    }
+
+    /* Push PC on stack */
+    bus_write(context->sp--, REGHIGH(context->pc));
+    bus_write(context->sp--, REGLOw(context->pc));
+
+    context->pc = label;
+    context->cycles += 6;
 }
 
 
