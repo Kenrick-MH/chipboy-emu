@@ -43,6 +43,7 @@
 */
 #define COND_ALWAYS     0x4
 
+
 /* Register Numbers */
 #define R8_B            0x0
 #define R8_C            0x1
@@ -53,20 +54,18 @@
 #define R8_HL_VAL       0x6
 #define R8_A            0x7
 
+/* 16-bit Register Indexes */
 #define R16_BC          0x0
 #define R16_DE          0x1
 #define R16_HL          0x2
 #define R16_SP          0x3
 
+/* 16-bit Registers for stack instructions */
 #define R16STK_BC       0x0
 #define R16STK_DE       0x1
 #define R16STK_HL       0x2
 #define R16STK_AF       0x3
 
-#define R16STK_BC       0x0
-#define R16STK_DE       0x1
-#define R16STK_HL       0x2
-#define R16STK_AF       0x3
 
 void instr_nop(cpu_context_t *context);
 
@@ -77,11 +76,10 @@ void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode);
 
 void instr_incr(cpu_context_t *context, uint8_t reg8_num);
 void instr_decr(cpu_context_t *context, uint8_t reg8_num);
-void instr_mov_reg(cpu_context_t *context, uint8_t src_num, uint8_t dst_num);
-void instr_mov_imm(cpu_context_t *context, uint8_t imm8);
+void instr_mov_r8(cpu_context_t *context, uint8_t src_num, uint8_t dest_num);
+void instr_mov_imm(cpu_context_t *context, uint8_t dest_num, uint8_t imm8);
 
 /* Load / Store instructions */
-void instr_alu_ld(cpu_context_t *context);
 void instr_ldr();
 void instr_ld_imm();
 void instr_str();
@@ -90,7 +88,6 @@ void instr_st_imm();
 /* Push/Pop */
 void instr_push(cpu_context_t *context, uint8_t r16stk);
 void instr_pop(cpu_context_t *context, uint8_t r16stk);
-
 
 /* Jumps */
 void instr_jp_hl(cpu_context_t *context);
@@ -108,8 +105,26 @@ void instr_reti(cpu_context_t *context);
 void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition);
 
 
-/* Ungrouped */
+
+
+
+
+/*
+    ===============
+        Ungrouped
+    =============== 
+*/
 void instr_cpl(cpu_context_t *context);
+
+/* Complement carry flag */
+void instr_ccf(cpu_context_t *context);
+
+/* Set carry flag */
+void instr_scf(cpu_context_t *context);
+
+
+
+
 
 /**
  *  Reads from register or memory
@@ -122,7 +137,7 @@ static uint8_t read_reg8(cpu_context_t *context, uint8_t r8_code)
 /**
  *  Writes to register
  */
-static uint8_t write_reg8(cpu_context_t *context, uint8_t r8_code)
+static uint8_t write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
 {
 
 }
@@ -465,5 +480,49 @@ void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition)
     context->cycles += 6;
 }
 
+void instr_ccf(cpu_context_t *context)
+{
+    uint8_t status = 0x0;
+    uint8_t prev_status = read_status(context);
 
+    /* Preserve the Z flag, complement C flag */
+    status |= (prev_status & CPU_STATUS_BIT_Z) | (~prev_status & CPU_STATUS_BIT_C); 
+    set_status(context, status);
+    context->cycles += 1;
+}
 
+void instr_scf(cpu_context_t *context)
+{
+    uint8_t status = 0x0;
+    uint8_t prev_status = read_status(context);
+
+    /* Preserve the Z flag, set C flag */
+    status |= (prev_status & CPU_STATUS_BIT_Z) | CPU_STATUS_BIT_C; 
+    set_status(context, status);
+    context->cycles += 1;
+}
+
+void instr_mov_imm(cpu_context_t *context, uint8_t dest_num, uint8_t imm8)
+{
+    write_reg8(context, dest_num, imm8);
+    
+    if (dest_num == R8_HL_VAL) {
+        context->cycles += 3;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+void instr_mov_r8(cpu_context_t *context, uint8_t src_num, uint8_t dest_num)
+{
+    uint8_t reg_val = read_reg8(context, src_num);
+    write_reg8(context, dest_num, reg_val);
+
+    if (dest_num == R8_HL_VAL) {
+        context->cycles += 2;
+        return;
+    }
+
+    context->cycles += 1;
+}
