@@ -88,8 +88,8 @@ void instr_str();
 void instr_st_imm();
 
 /* Push/Pop */
-void instr_push(cpu_context_t *context, uint8_t r16stk);
-void instr_pop(cpu_context_t *context, uint8_t r16stk);
+void instr_push16(cpu_context_t *context, uint8_t r16stk);
+void instr_pop16(cpu_context_t *context, uint8_t r16stk);
 
 /* Jumps */
 void instr_jp_hl(cpu_context_t *context);
@@ -105,6 +105,12 @@ void instr_ret_cc(cpu_context_t *context, uint8_t condition);
 void instr_reti(cpu_context_t *context);
 
 void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition);
+
+/* Bit Operations */
+void instr_bit_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select);
+void instr_res_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select);
+void instr_set_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select);
+
 
 /*
     ===============
@@ -438,7 +444,7 @@ void instr_cpl(cpu_context_t *context)
     context->cycles += 1;
 }
 
-void instr_push(cpu_context_t *context, uint8_t r16stk)
+void instr_push16(cpu_context_t *context, uint8_t r16stk)
 {
     uint16_t reg_data;
     switch (r16stk)
@@ -463,7 +469,7 @@ void instr_push(cpu_context_t *context, uint8_t r16stk)
     context->cycles += 4;
 }
 
-void instr_pop(cpu_context_t *context, uint8_t r16stk)
+void instr_pop16(cpu_context_t *context, uint8_t r16stk)
 {
     uint8_t reg_high, reg_low;
     uint16_t full_val;
@@ -621,4 +627,58 @@ void instr_mov_r8(cpu_context_t *context, uint8_t src_num, uint8_t dest_num)
     }
 
     context->cycles += 1;
+}
+
+void instr_bit_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select)
+{
+    /* 
+        TODO: 
+            CONTINUE IMPLEMENT THIS!
+    */
+    
+    uint8_t reg_val;
+    uint8_t status = 0x0;
+    assert (bit_select < 0x8);
+
+    reg_val = read_reg8(context, regcode);
+
+    /* Keep carry bit, clear others */
+    status = read_status(context) & CPU_STATUS_BIT_C;
+    status |= CPU_STATUS_BIT_H;
+
+    set_status(context, status);
+    
+    if (regcode == R8_HL_VAL){
+        context->cycles += 3;
+    } else context->cycles += 2;
+
+}
+
+void instr_res_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select)
+{
+    uint8_t reg_val;
+    uint8_t mask;
+    assert (bit_select < 0x8);
+
+    reg_val = read_reg8(context, regcode);
+    mask = 0x1 << bit_select;
+    write_reg8(context, regcode, reg_val & (~mask));
+    
+    if (regcode == R8_HL_VAL){
+        context->cycles += 4;
+    } else context->cycles += 2;
+}
+
+void instr_set_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select){
+    uint8_t reg_val;
+    uint8_t mask;
+    assert (bit_select < 0x8);
+
+    reg_val = read_reg8(context, regcode);
+    mask = 0x1 << bit_select;
+    write_reg8(context, regcode, reg_val | mask);
+    
+    if (regcode == R8_HL_VAL){
+        context->cycles += 4;
+    } else context->cycles += 2;
 }
