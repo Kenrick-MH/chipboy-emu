@@ -189,7 +189,7 @@ static uint16_t read_reg16(cpu_context_t *context, uint8_t r16_code)
 /**
  *  Writes to register
  */
-static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code)
+static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code, uint16_t val)
 {
 
 }
@@ -324,26 +324,57 @@ void instr_nop(cpu_context_t *context)
 
 void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
 {
-    uint8_t old_val = read_reg8(context, reg8_num);
-
+    uint8_t status;
     
+    uint8_t old_val = read_reg8(context, reg8_num);
+    write_reg8(context, reg8_num, old_val+1);
+    
+    /* Read status, clear other bits other than C */
+    status = read_status(context) & (CPU_STATUS_BIT_C);
 
+    if (old_val & 0x0f == 0x0f)            status |= CPU_STATUS_BIT_H;
+    if ((uint8_t) (old_val+1) == 0x0 )     status != CPU_STATUS_BIT_Z;
+
+    set_status(context, status);
+
+    if (reg8_num == R8_HL_VAL){
+        context->cycles += 3;
+    } else context->cycles += 1;
 
 }
 
 void instr_incr16(cpu_context_t *context, uint8_t reg16_num)
 {
-    
+    uint16_t old_val = read_reg16(context, reg16_num);
+    write_reg16(context, reg16_num, (uint16_t) (old_val+1));    
+    context->cycles += 2;
 }
 
 void instr_decr8(cpu_context_t *context, uint8_t reg8_num)
 {
+    uint8_t status;
     
+    uint8_t old_val = read_reg8(context, reg8_num);
+    write_reg8(context, reg8_num, (uint8_t) (old_val-1));
+    
+    /* Read status, clear other bits other than C */
+    status = read_status(context) & (CPU_STATUS_BIT_C);
+
+    status |= CPU_STATUS_BIT_N;
+    if (old_val & 0x0f == 0x00)             status |= CPU_STATUS_BIT_H;
+    if ((uint8_t) (old_val-1) == 0x0)       status |= CPU_STATUS_BIT_Z;
+
+    set_status(context, status);
+    if (reg8_num == R8_HL_VAL){
+        context->cycles += 3;
+    } else context->cycles += 1;
 }
 
 void instr_decr16(cpu_context_t *context, uint8_t reg16_num)
 {
-    
+    uint16_t old_val = read_reg16(context, reg16_num);
+    write_reg16(context, reg16_num, (uint16_t) (old_val-1));    
+    context->cycles += 2;
 }
 
 
@@ -352,31 +383,14 @@ void instr_alu_op_reg(cpu_context_t *context, uint8_t reg_num,
 {
     uint8_t reg_val;
 
-    /* Load in the register value */
-    switch (reg_num)
-    {
-        /* Single cycle registers to load */
-        case R8_A: reg_val = context->af.hi; context->cycles += 1; break;
-        case R8_B: reg_val = context->bc.hi; context->cycles += 1; break;
-        case R8_C: reg_val = context->bc.lo; context->cycles += 1; break;
-        case R8_D: reg_val = context->de.hi; context->cycles += 1; break;
-        case R8_E: reg_val = context->de.lo; context->cycles += 1; break;
-        case R8_H: reg_val = context->hl.hi; context->cycles += 1; break;
-        case R8_L: reg_val = context->hl.lo; context->cycles += 1; break;
-
-        /* Two cycle instructions */
-        case R8_HL_VAL:
-            addr_t addr = (addr_t) context->hl.full;
-            reg_val = bus_read(addr); 
-            context->cycles += 2;
-            break;
-
-        default:
-            break;
-    }
-
+    reg_val = read_reg8(context, reg_num);
+    
     /* Set accumulator to the proper values */
     alu_op8(context, alu_opcode, reg_val);
+    if (reg_num == R8_HL_VAL){
+        context->cycles += 2;
+    } else context->cycles += 1;
+
 }
 
 void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode)
