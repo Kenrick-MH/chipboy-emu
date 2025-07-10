@@ -279,28 +279,37 @@ static uint8_t push_stack8(cpu_context_t *context)
 
 }
 
-
-
-void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
-{
-    
-}
-
-void instr_incr16(cpu_context_t *context, uint8_t reg8_num)
-{
-    
-}
-
-void instr_decr(cpu_context_t *context, uint8_t reg8_num)
-{
-
-}
-
 void instr_nop(cpu_context_t *context)
 {
     /* Do nothing, only increment cycle count */
     ++context->cycles; 
 }
+
+
+void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
+{
+    uint8_t old_val = read_reg8(context, reg8_num);
+
+    
+
+
+}
+
+void instr_incr16(cpu_context_t *context, uint8_t reg16_num)
+{
+    
+}
+
+void instr_decr8(cpu_context_t *context, uint8_t reg8_num)
+{
+    
+}
+
+void instr_decr16(cpu_context_t *context, uint8_t reg16_num)
+{
+    
+}
+
 
 void instr_alu_op_reg(cpu_context_t *context, uint8_t reg_num,
                         uint8_t alu_opcode)
@@ -341,11 +350,6 @@ void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode)
     /* Regardless of OP, this always takes two cycles */
     context->cycles += 2;
 }
-
-void instr_mov_reg(cpu_context_t *context, uint8_t src_num, uint8_t dst_num);
-
-
-
 
 void instr_cpl(cpu_context_t *context)
 {
@@ -420,9 +424,21 @@ void instr_jp_cc(cpu_context_t *context, addr_t address, uint8_t condition)
 
 void instr_jr_cc(cpu_context_t *context, int8_t addr_offset, uint8_t condition)
 {
+    
+    uint16_t new_addr;
+
     if (!is_branch_taken(context, condition)) {
         context->cycles += 2;
         return;
+    }
+
+    uint8_t abs_val = (addr_offset > 0) ? addr_offset : -addr_offset;
+
+    /* Calculate address */
+    if (addr_offset > 0){
+        context->pc += abs_val;
+    } else {
+        context->pc -= abs_val;
     }
 
     context->cycles += 3;
