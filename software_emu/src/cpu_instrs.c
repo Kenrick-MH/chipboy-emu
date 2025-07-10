@@ -9,9 +9,30 @@
 #define ALU_OR          0x4
 #define ALU_AND         0x5
 #define ALU_XOR         0x6
-#define ALU_COMPARE     0x7
+#define ALU_CP          0x7
 
 /* Status flags */
+#define CPU_STATUS_BIT_Z    0x80
+#define CPU_STATUS_BIT_N    0x40
+#define CPU_STATUS_BIT_H    0x20
+#define CPU_STATUS_BIT_C    0x10
+
+
+/* Extract Status */
+#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_Z) >> 7)) 
+#define CPU_STATUS_N_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_N) >> 6))
+#define CPU_STATUS_H_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_H) >> 5))
+#define CPU_STATUS_C_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_C) >> 4))
+
+
+// Carry (Addition) calculations
+#define CHECK_CARRY(a, b)         (((uint16_t)(a) + (uint16_t)(b)) > 0xFF)
+#define CHECK_HALF_CARRY(a, b)    ((((a) & 0x0F) + ((b) & 0x0F)) > 0x0F)
+
+// Borrow calculations
+#define CHECK_BORROW(a, b)        ((uint16_t)(a) < (uint16_t)(b))
+#define CHECK_HALF_BORROW(a, b)   (((a & 0x0F) < (b & 0x0F)))
+
 #define FLAG_ALWAYS
 #define FLAG_N
 #define FLAG_C
@@ -48,6 +69,8 @@ void instr_alu_op_reg(cpu_context_t *context, uint8_t reg_num,
                         uint8_t alu_opcode);
 void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode);
 
+void instr_incr(cpu_context_t *context, uint8_t reg8_num);
+void instr_decr(cpu_context_t *context, uint8_t reg8_num);
 void instr_mov_reg(cpu_context_t *context, uint8_t src_num, uint8_t dst_num);
 void instr_mov_imm(cpu_context_t *context, uint8_t imm8);
 
@@ -61,17 +84,144 @@ void instr_st_imm();
 /* Push/Pop */
 void instr_push(cpu_context_t *context, uint8_t r16stk);
 void instr_pop(cpu_context_t *context, uint8_t r16stk);
-
-
 void instr_ret(cpu_context_t *context);
+
+/* Jumps */
 
 
 
 /* Ungrouped */
 void instr_cpl(cpu_context_t *context);
 
+/**
+ *  Reads from register or memory
+ */
+static uint8_t read_reg8(cpu_context_t *context, uint8_t r8_code)
+{
 
+}
 
+/**
+ *  Writes to register
+ */
+static uint8_t write_reg8(cpu_context_t *context, uint8_t r8_code)
+{
+
+}
+
+/**
+ *  Reads from register or memory
+ */
+static uint16_t read_reg16(cpu_context_t *context, uint8_t r16_code)
+{
+
+}
+
+/**
+ *  Writes to register
+ */
+static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code)
+{
+
+}
+
+/**
+ *  
+ */
+static uint8_t read_status(cpu_context_t *context)
+{
+
+}
+
+/**
+ *  
+ */
+static uint8_t set_status(cpu_context_t *context, uint8_t flags)
+{
+
+}
+
+/**
+ *  Manages 8-bit ALU operations
+ */
+static void alu_op8(cpu_context_t *context, 
+                    uint8_t alu8_opcode, uint8_t operand)
+{    
+    uint16_t accumulator = context->af.hi;
+    uint16_t wide_operand = operand;
+    uint8_t prev_flags = read_status(context);
+    uint8_t flags = 0x0;
+    
+    /* Now, operate on the values */
+    switch (alu8_opcode)
+    {
+        /* Single cycle registers to load */
+        case ALU_ADD    :
+        case ALU_ADDC   : 
+            wide_operand += (alu8_opcode == ALU_ADDC) ? CPU_STATUS_C_TEST(prev_flags) : 0;
+            if (CHECK_CARRY(accumulator, wide_operand))       flags |= CPU_STATUS_BIT_C;
+            if (CHECK_HALF_CARRY(accumulator, wide_operand))  flags |= CPU_STATUS_BIT_H;
+            accumulator += wide_operand; 
+            break;
+
+        case ALU_SUB    :
+        case ALU_SUBC   :
+        case ALU_CP     : 
+            wide_operand -= (alu8_opcode == ALU_SUBC) ? CPU_STATUS_C_TEST(prev_flags) : 0;
+            if (CHECK_BORROW(accumulator, wide_operand))       flags |= CPU_STATUS_BIT_C;
+            if (CHECK_HALF_BORROW(accumulator, wide_operand))  flags |= CPU_STATUS_BIT_H;
+            flags |= CPU_STATUS_BIT_N;
+            accumulator -= wide_operand; break;
+            
+        case ALU_AND    :             
+            accumulator &= wide_operand;
+            flags |= CPU_STATUS_BIT_H; 
+            break;
+
+        case ALU_OR     : accumulator |= wide_operand; break;
+        case ALU_XOR    : accumulator ^= wide_operand; break;
+
+        default:
+            break;
+    }
+
+    /* 
+        Common case:
+        -  Z flag is set when result (accumulator) is zero. 
+    */
+    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_BIT_Z;
+    set_status(context, flags);
+
+    if (alu8_opcode != ALU_CP)  
+        context->af.hi = (uint8_t) (accumulator & 0xff);
+
+    return;
+}
+
+/**
+ *  
+ */
+static void alu_op16(cpu_context_t *context, 
+                    uint8_t alu16_opcode, uint16_t operand)
+{
+    
+
+}
+
+void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
+{
+    
+}
+
+void instr_incr16(cpu_context_t *context, uint8_t reg8_num)
+{
+    
+}
+
+void instr_decr(cpu_context_t *context, uint8_t reg8_num)
+{
+
+}
 
 void instr_nop(cpu_context_t *context)
 {
@@ -107,40 +257,13 @@ void instr_alu_op_reg(cpu_context_t *context, uint8_t reg_num,
             break;
     }
 
-    /* Now, operate on the values */
-    switch (alu_opcode)
-    {
-        /* Single cycle registers to load */
-        case ALU_ADD : context->af.lo += reg_val; break;
-        case ALU_ADDC: context->af.lo += reg_val; break;
-        case ALU_SUB : context->af.lo -= reg_val; break;
-        case ALU_SUBC : context->af.lo -= reg_val; break;
-        case ALU_OR  : context->af.lo |= reg_val; break;
-        case ALU_AND  : context->af.lo &= reg_val; break;
-        case ALU_XOR  : context->af.lo ^= reg_val; break;
-
-        default:
-            break;
-    }
+    /* Set accumulator to the proper values */
+    alu_op8(context, alu_opcode, reg_val);
 }
 
 void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode)
-{
-    /* Now, operate on the values */
-    switch (alu_opcode)
-    {
-        /* Single cycle registers to load */
-        case ALU_ADD    : context->af.lo += imm8;   break;
-        case ALU_ADDC   : context->af.lo += imm8;   break;
-        case ALU_SUB    : context->af.lo -= imm8;   break;
-        case ALU_SUBC   : context->af.lo -= imm8;   break;
-        case ALU_OR     : context->af.lo |= imm8;   break;
-        case ALU_AND    : context->af.lo &= imm8;   break;
-        case ALU_XOR    : context->af.lo ^= imm8;   break;
-
-        default:
-            break;
-    }
+{    
+    alu_op8(context, alu_opcode, imm8);
 
     /* Regardless of OP, this always takes two cycles */
     context->cycles += 2;
@@ -148,11 +271,14 @@ void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode)
 
 void instr_mov_reg(cpu_context_t *context, uint8_t src_num, uint8_t dst_num);
 
+
+
+
 void instr_cpl(cpu_context_t *context)
 {
     context->af.hi = ~context->af.hi;
+    set_status(context, CPU_STATUS_BIT_N | CPU_STATUS_BIT_H);
     context->cycles += 1;
-    /* Set status bits */
 }
 
 void instr_push(cpu_context_t *context, uint8_t r16stk)
