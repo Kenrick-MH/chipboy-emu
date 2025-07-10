@@ -75,9 +75,12 @@ void instr_nop(cpu_context_t *context);
 void instr_alu_op_reg(cpu_context_t *context, uint8_t reg_num,
                         uint8_t alu_opcode);
 void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode);
+void instr_add_hl_r16(cpu_context_t *context, uint16_t src_reg);
 
-void instr_incr(cpu_context_t *context, uint8_t reg8_num);
-void instr_decr(cpu_context_t *context, uint8_t reg8_num);
+void instr_incr8(cpu_context_t *context, uint8_t reg8_num);
+void instr_decr8(cpu_context_t *context, uint8_t reg8_num);
+void instr_incr16(cpu_context_t *context, uint8_t reg16_num);
+void instr_decr16(cpu_context_t *context, uint8_t reg16_num);
 void instr_mov_r8(cpu_context_t *context, uint8_t src_num, uint8_t dest_num);
 void instr_mov_imm(cpu_context_t *context, uint8_t dest_num, uint8_t imm8);
 
@@ -129,7 +132,7 @@ void instr_scf(cpu_context_t *context);
 /**
  *  Reads from register or memory
  */
-static uint8_t read_reg8(cpu_context_t *context, uint8_t r8_code)
+static uint8_t write_reg8(cpu_context_t *context, uint8_t r8_code)
 {
     uint8_t reg_val = 0x0;
     /* Load in the register value */
@@ -165,18 +168,18 @@ static void write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
     switch (r8_code)
     {
         /* Read from register */
-        case R8_A: return context->af.hi; break;
-        case R8_B: return context->bc.hi; break;
-        case R8_C: return context->bc.lo; break;
-        case R8_D: return context->de.hi; break;
-        case R8_E: return context->de.lo; break;
-        case R8_H: return context->hl.hi; break;
-        case R8_L: return context->hl.lo; break;
+        case R8_A: context->af.hi = val; break;
+        case R8_B: context->bc.hi = val; break;
+        case R8_C: context->bc.lo = val; break;
+        case R8_D: context->de.hi = val; break;
+        case R8_E: context->de.lo = val; break;
+        case R8_H: context->hl.hi = val; break;
+        case R8_L: context->hl.lo = val; break;
 
         /* Memory read instruction from HL */
         case R8_HL_VAL:
             addr_t addr = (addr_t) context->hl.full;
-            return bus_read(addr); 
+            return bus_write(addr, val); 
             break;
 
         default:
@@ -304,16 +307,6 @@ static void alu_op8(cpu_context_t *context,
 }
 
 /**
- *  
- */
-static void alu_op16(cpu_context_t *context, 
-                    uint8_t alu16_opcode, uint16_t operand)
-{
-    
-
-}
-
-/**
  *  Check if branch is taken or not, depending on the condition.
  *  Return a boolean indicating to take branch or not.
  */
@@ -331,24 +324,6 @@ static bool is_branch_taken(cpu_context_t *context, uint8_t condition)
         default:
             return true;
     }
-}
-
-/**
- *  Check if branch is taken or not, depending on the condition.
- *  Return a boolean indicating to take branch or not.
- */
-static uint8_t pop_stack8(cpu_context_t *context)
-{
-
-}
-
-/**
- *  Check if branch is taken or not, depending on the condition.
- *  Return a boolean indicating to take branch or not.
- */
-static uint8_t push_stack8(cpu_context_t *context)
-{
-
 }
 
 void instr_nop(cpu_context_t *context)
@@ -435,6 +410,19 @@ void instr_alu_op_imm(cpu_context_t *context, uint8_t imm8, uint8_t alu_opcode)
 
     /* Regardless of OP, this always takes two cycles */
     context->cycles += 2;
+}
+
+void instr_add_hl_r16(cpu_context_t *context, uint16_t src_reg)
+{
+    assert(src_reg != R16_AF && src_reg != R16_PC);
+    
+    uint16_t reg_val = read_reg16(context, src_reg);
+    
+    /* 
+        TODO:
+            IMPLEMENT THIS
+    */
+
 }
 
 void instr_cpl(cpu_context_t *context)
