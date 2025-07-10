@@ -132,7 +132,7 @@ void instr_scf(cpu_context_t *context);
 /**
  *  Reads from register or memory
  */
-static uint8_t write_reg8(cpu_context_t *context, uint8_t r8_code)
+static uint8_t read_reg8(cpu_context_t *context, uint8_t r8_code)
 {
     uint8_t reg_val = 0x0;
     /* Load in the register value */
@@ -343,8 +343,8 @@ void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
     /* Read status, clear other bits other than C */
     status = read_status(context) & (CPU_STATUS_BIT_C);
 
-    if (old_val & 0x0f == 0x0f)            status |= CPU_STATUS_BIT_H;
-    if ((uint8_t) (old_val+1) == 0x0 )     status != CPU_STATUS_BIT_Z;
+    if ((old_val & 0x0f) == 0x0f)            status |= CPU_STATUS_BIT_H;
+    if ((uint8_t) (old_val+1) == 0x0 )     status |= CPU_STATUS_BIT_Z;
 
     set_status(context, status);
 
@@ -372,7 +372,7 @@ void instr_decr8(cpu_context_t *context, uint8_t reg8_num)
     status = read_status(context) & (CPU_STATUS_BIT_C);
 
     status |= CPU_STATUS_BIT_N;
-    if (old_val & 0x0f == 0x00)             status |= CPU_STATUS_BIT_H;
+    if ((old_val & 0x0f) == 0x00)             status |= CPU_STATUS_BIT_H;
     if ((uint8_t) (old_val-1) == 0x0)       status |= CPU_STATUS_BIT_Z;
 
     set_status(context, status);
@@ -564,7 +564,7 @@ void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition)
 
     /* Push PC on stack */
     bus_write(context->sp--, REGHIGH(context->pc));
-    bus_write(context->sp--, REGLOw(context->pc));
+    bus_write(context->sp--, REGLOW(context->pc));
 
     context->pc = label;
     context->cycles += 6;
