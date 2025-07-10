@@ -104,11 +104,6 @@ void instr_reti(cpu_context_t *context);
 
 void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition);
 
-
-
-
-
-
 /*
     ===============
         Ungrouped
@@ -123,23 +118,64 @@ void instr_ccf(cpu_context_t *context);
 void instr_scf(cpu_context_t *context);
 
 
-
-
-
 /**
  *  Reads from register or memory
  */
 static uint8_t read_reg8(cpu_context_t *context, uint8_t r8_code)
 {
+    uint8_t reg_val = 0x0;
+    /* Load in the register value */
+    switch (r8_code)
+    {
+        /* Read from register */
+        case R8_A: reg_val = context->af.hi; break;
+        case R8_B: reg_val = context->bc.hi; break;
+        case R8_C: reg_val = context->bc.lo; break;
+        case R8_D: reg_val = context->de.hi; break;
+        case R8_E: reg_val = context->de.lo; break;
+        case R8_H: reg_val = context->hl.hi; break;
+        case R8_L: reg_val = context->hl.lo; break;
 
+        /* Memory read instruction from HL */
+        case R8_HL_VAL:
+            addr_t addr = (addr_t) context->hl.full;
+            reg_val = bus_read(addr); 
+            break;
+
+        default:
+            break;
+    }
+
+    return reg_val;
 }
 
 /**
  *  Writes to register
  */
-static uint8_t write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
+static void write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
 {
+    switch (r8_code)
+    {
+        /* Read from register */
+        case R8_A: return context->af.hi; break;
+        case R8_B: return context->bc.hi; break;
+        case R8_C: return context->bc.lo; break;
+        case R8_D: return context->de.hi; break;
+        case R8_E: return context->de.lo; break;
+        case R8_H: return context->hl.hi; break;
+        case R8_L: return context->hl.lo; break;
 
+        /* Memory read instruction from HL */
+        case R8_HL_VAL:
+            addr_t addr = (addr_t) context->hl.full;
+            return bus_read(addr); 
+            break;
+
+        default:
+            break;
+    }
+
+    return;
 }
 
 /**
@@ -163,15 +199,15 @@ static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code)
  */
 static uint8_t read_status(cpu_context_t *context)
 {
-
+    return context->af.lo;
 }
 
 /**
  *  
  */
-static uint8_t set_status(cpu_context_t *context, uint8_t flags)
+static void set_status(cpu_context_t *context, uint8_t flags)
 {
-
+    context->af.lo = flags;
 }
 
 /**
