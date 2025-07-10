@@ -27,7 +27,7 @@ START_TEST(load_rom_test)
 
     ck_assert_msg(filesize == readsize, "Error reading file");
 
-        
+    /* Now actually read metadata */
     
 
 

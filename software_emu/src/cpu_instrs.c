@@ -17,7 +17,6 @@
 #define CPU_STATUS_BIT_H    0x20
 #define CPU_STATUS_BIT_C    0x10
 
-
 /* Extract Status */
 #define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_Z) >> 7)) 
 #define CPU_STATUS_N_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_N) >> 6))
@@ -33,9 +32,16 @@
 #define CHECK_BORROW(a, b)        ((uint16_t)(a) < (uint16_t)(b))
 #define CHECK_HALF_BORROW(a, b)   (((a & 0x0F) < (b & 0x0F)))
 
-#define FLAG_ALWAYS
-#define FLAG_N
-#define FLAG_C
+#define COND_NZ         0x0
+#define COND_Z          0x1
+#define COND_NC         0x2
+#define COND_C          0x3
+
+/* 
+    This doesn't really exist, but only really done
+    to reuse logic. 
+*/
+#define COND_ALWAYS     0x4
 
 /* Register Numbers */
 #define R8_B            0x0
@@ -84,10 +90,25 @@ void instr_st_imm();
 /* Push/Pop */
 void instr_push(cpu_context_t *context, uint8_t r16stk);
 void instr_pop(cpu_context_t *context, uint8_t r16stk);
-void instr_ret(cpu_context_t *context);
+
 
 /* Jumps */
+void instr_jp_hl(cpu_context_t *context);
+void instr_jp_cc(cpu_context_t *context, addr_t address, uint8_t condition);
+void instr_jr_cc(cpu_context_t *context, int8_t addr_offset, uint8_t condition);
 
+void instr_ret(cpu_context_t *context);
+void instr_ret_cc(cpu_context_t *context, uint8_t condition);
+
+/* 
+    Has 2 different versions, since the always variant and not taken variant have
+    two differing clock cycles.
+*/
+void instr_ret(cpu_context_t *context);
+void instr_ret_cc(cpu_context_t *context, uint8_t condition);
+void instr_reti(cpu_context_t *context);
+
+void instr_call_cc(cpu_context_t *context, addr_t label, uint8_t condition);
 
 
 /* Ungrouped */
@@ -341,3 +362,68 @@ void instr_ret(cpu_context_t *context)
     context->pc = REGFULL(reg_high, reg_low);
     context->cycles += 4;
 }
+
+
+/**
+ *  Check if branch is taken or not, depending on the condition.
+ *  Return a boolean indicating to take branch or not.
+ */
+static bool is_branch_taken(cpu_context_t *context, uint8_t condition)
+{
+    uint8_t prev_status = read_status(context);
+    switch (condition & 0b111)
+    {
+        case COND_C:    return CPU_STATUS_C_TEST(prev_status);  break;
+        case COND_NC:   return !CPU_STATUS_C_TEST(prev_status); break;
+        case COND_Z:    return CPU_STATUS_Z_TEST(prev_status);  break;
+        case COND_NZ:   return !CPU_STATUS_Z_TEST(prev_status); break;
+        
+        case COND_ALWAYS:
+        default:
+            return true;
+    }
+}
+
+void instr_jp_hl(cpu_context_t *context)
+{
+    context->pc = context->hl.full;
+    context->cycles += 1;
+}
+
+void instr_jp_cc(cpu_context_t *context, addr_t address, uint8_t condition)
+{   
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 3;
+        return;
+    }
+
+    context->pc = address;
+    context->cycles += 4;
+}
+
+void instr_jr_cc(cpu_context_t *context, int8_t addr_offset, uint8_t condition)
+{
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 2;
+        return;
+    }
+
+    context->cycles += 3;
+}
+
+
+void instr_ret(cpu_context_t *context)
+{
+    /* Equivalent to POP PC */
+    uint8_t reg_high, reg_low;
+    uint16_t full_val;
+
+    reg_low = bus_read(context->sp++);
+    reg_high = bus_read(context->sp++);
+
+    context->pc = REGFULL(reg_high, reg_low);
+    context->cycles += 4;
+}
+
+
+

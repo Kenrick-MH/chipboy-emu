@@ -4,9 +4,12 @@
 #include <common.h>
 #include <bus.h>
 
+
+/* Regs */
 #define REGHIGH(reg16)              ((uint8_t) (((reg16) >> 8) & 0xff)  )
 #define REGLOW(reg16)               ((uint8_t)  ((reg16) & 0xff)        )
 #define REGFULL(reg_hi, reg_lo)     ((uint8_t)  ((reg_lo) & 0xff) | (((reg_hi) & 0xff) << 8) )
+
 
 /**
  *  Register datatype, comes in two forms,
@@ -58,6 +61,8 @@ void cpu_init();
  *  Steps over one CPU cycle, i.e. steps over one instruction
  */
 void cpu_step();
+
+
 
 
 #endif // CPU_H
