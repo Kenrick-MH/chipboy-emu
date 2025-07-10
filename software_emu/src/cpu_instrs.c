@@ -59,6 +59,8 @@
 #define R16_DE          0x1
 #define R16_HL          0x2
 #define R16_SP          0x3
+#define R16_PC          0x4
+#define R16_AF          0x5
 
 /* 16-bit Registers for stack instructions */
 #define R16STK_BC       0x0
@@ -172,6 +174,8 @@ static void write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
             break;
 
         default:
+            /* UH-OH, invalid value! */
+            assert(false);
             break;
     }
 
@@ -183,7 +187,20 @@ static void write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
  */
 static uint16_t read_reg16(cpu_context_t *context, uint8_t r16_code)
 {
-
+    switch (r16_code)   
+    {
+        case R16_BC: return context->bc.full; break;
+        case R16_DE: return context->de.full; break;
+        case R16_HL: return context->hl.full; break;
+        case R16_AF: return context->af.full; break;
+        case R16_SP: return context->sp     ; break;
+        case R16_PC: return context->pc     ; break;
+        
+        default:
+            /* UH-OH, invalid value! */
+            assert(false);
+            break;
+    }
 }
 
 /**
@@ -191,7 +208,20 @@ static uint16_t read_reg16(cpu_context_t *context, uint8_t r16_code)
  */
 static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code, uint16_t val)
 {
-
+    switch (r16_code)   
+    {
+        case R16_BC: context->bc.full = val; break;
+        case R16_DE: context->de.full = val; break;
+        case R16_HL: context->hl.full = val; break;
+        case R16_AF: context->af.full = val; break;
+        case R16_SP: context->sp      = val; break;
+        case R16_PC: context->pc      = val; break;
+        
+        default:
+            /* UH-OH, invalid value! */
+            assert(false);
+            break;
+    }
 }
 
 /**
