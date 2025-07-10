@@ -58,4 +58,7 @@ dkms.conf
 test/test_roms/**
 *.gb
 
+.vscode/
+.metadata/
+
 
