@@ -4,12 +4,10 @@
 #include <common.h>
 #include <bus.h>
 
-
 /* Regs */
 #define REGHIGH(reg16)              ((uint8_t) (((reg16) >> 8) & 0xff)  )
 #define REGLOW(reg16)               ((uint8_t)  ((reg16) & 0xff)        )
 #define REGFULL(reg_hi, reg_lo)     ((uint8_t)  ((reg_lo) & 0xff) | (((reg_hi) & 0xff) << 8) )
-
 
 /**
  *  Register datatype, comes in two forms,
@@ -51,8 +49,12 @@ typedef struct cpu_context {
     uint16_t pc;
     uint64_t cycles;
 
-} cpu_context_t;
+    /* 
+        Interrupt flag. 
+    */
+    uint8_t ime;
 
+} cpu_context_t;
 
 // Stub, wait to define bus structures
 void cpu_init();
@@ -62,7 +64,7 @@ void cpu_init();
  */
 void cpu_step();
 
-
-
+void cpu_ei();
+void cpu_di();
 
 #endif // CPU_H

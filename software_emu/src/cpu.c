@@ -13,38 +13,6 @@
 */
 static cpu_context_t cpu_context;
 
-/** INSTRUCTIONS, GROUPED BY FUNCTIONALITY */
-
-/**
- *  Corresponds to the instruction `LD reg8 <val>` 
- */
-static void mov8();
-
-/**
- *  Corresponds to the instruction `LD reg16 <val>` 
- */
-static void mov16();
-
-
-static void nop()
-{
-    /* Does nothing */
-}
-
-static void jr()
-{
-    /* Does nothing */
-}
-
-/**
- *  Decode instruction
- */
-static void cpu_decode(uint8_t opcode)
-{
-
-}
-
-
 /**
  *  Fetch instruction in memory.
  */

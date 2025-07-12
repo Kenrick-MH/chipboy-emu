@@ -129,6 +129,20 @@ void instr_ccf(cpu_context_t *context);
 void instr_scf(cpu_context_t *context);
 
 
+/*
+    ===========================
+        Prefix Instruction
+    ===========================
+*/
+
+/* 
+    Only acts a branching point for prefix instructions.
+*/
+void instr_exec_prefix(cpu_context_t *context);
+
+
+
+
 /**
  *  Reads from register or memory
  */
@@ -441,7 +455,7 @@ void instr_push16(cpu_context_t *context, uint8_t r16stk)
         case R16STK_DE: reg_data = context->de.full; break;
         case R16STK_HL: reg_data = context->hl.full; break;
         case R16STK_AF: reg_data = context->af.full; break;
-    
+        
         default:
             break;
     }

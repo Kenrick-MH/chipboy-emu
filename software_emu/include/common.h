@@ -24,6 +24,7 @@ typedef uint16_t addr_t;
 /*
     Common macro defs here
 */
+#define EXTRACT_BIT (())
 
 
 
