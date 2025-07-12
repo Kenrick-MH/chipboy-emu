@@ -68,7 +68,6 @@
 #define R16STK_HL       0x2
 #define R16STK_AF       0x3
 
-
 void instr_nop(cpu_context_t *context);
 
 /* ALU Operations */
@@ -684,3 +683,4 @@ void instr_set_r8(cpu_context_t *context, uint8_t regcode, uint8_t bit_select){
         context->cycles += 4;
     } else context->cycles += 2;
 }
+
