@@ -14,7 +14,7 @@
  *  The specific semantics of each instruction can be seen in 
  *  https://rgbds.gbdev.io/docs/v0.9.3/gbz80.7#Load_instructions
  * 
- *  All functions takes (cpu_context *) as an argument.
+ *  All functions takes (cpu_context *, uint8_t opcode) as an argument.
  */
 void instr_nop(cpu_context_t *context);
 
