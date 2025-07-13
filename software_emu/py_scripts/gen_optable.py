@@ -70,6 +70,21 @@ OPTABLE_FILTERS : dict[BitFilter, InstructionStr] = {
     '1111_1011': 'instr_ei',
 }
 
+PREFIX_OPFILTERS = {
+    '0000_0xxx': 'instr_rlc_r8',
+    '0000_1xxx': 'instr_rrc_r8',
+    '0001_0xxx': 'instr_rl_r8',
+    '0001_1xxx': 'instr_rr_r8',
+    '0010_0xxx': 'instr_sla_r8',
+    '0010_1xxx': 'instr_sra_r8',
+    '0011_0xxx': 'instr_swap_r8',
+    '0011_1xxx': 'instr_srl_r8',
+    
+    '01xxx_xxx': 'instr_bit_b3_r8',
+    '10xxx_xxx': 'instr_res_b3_r8',
+    '11xxx_xxx': 'instr_set_b3_r8',
+}
+
 # Recursive helper function to expand the filters
 def generate_expansion(og_str: str, index: int, generated_str, str_set: set):
     if (index == len(og_str)):
@@ -89,10 +104,10 @@ def expand_bitfilter(bitfilter: BitFilter):
     generate_expansion(bitfilter, 0, '', replacement_sets)
     return replacement_sets
 
-def create_optable():
+def create_optable(opfilter: dict[BitFilter, InstructionStr]):
     optable = {}
     
-    for bitfilter, func_name in OPTABLE_FILTERS.items():
+    for bitfilter, func_name in opfilter.items():
         expansion_set = expand_bitfilter(bitfilter)
         for op_byte in expansion_set:
             optable[int(op_byte,2)] = func_name
@@ -101,7 +116,8 @@ def create_optable():
 
 def main():
     
-    optable = create_optable()
+    optable = create_optable(OPTABLE_FILTERS)
+    prefix_optable = create_optable(PREFIX_OPFILTERS)
     py_dir = os.path.dirname(__file__)
     template_path = os.path.join(py_dir, 'template_optable.h')
     
@@ -109,12 +125,18 @@ def main():
         template_file_str = f.read()
     
     replacement_str = "\n"
+    prefix_entries = "\n"
     
     for index, func_name in optable.items():
-        replacement_str += f"\t[0x{index:02x}] \t= \t{func_name}, \n"    
+        replacement_str += f"\t[0x{index:02x}] \t= \t{func_name}, \n"
+    pass
+
+    for index, func_name in prefix_optable.items():
+        prefix_entries += f"\t[0x{index:02x}] \t= \t{func_name}, \n"
     pass
 
     optable_file = template_file_str.replace("/*[REPLACE_ME]*/", replacement_str)
+    optable_file = optable_file.replace("/*PREFIX_OPTABLE*/", prefix_entries)
     
     with open(os.path.join(py_dir, 'optable.h'), 'w') as f:
         f.write(optable_file)
