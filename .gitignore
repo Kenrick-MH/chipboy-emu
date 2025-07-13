@@ -61,4 +61,10 @@ test/test_roms/**
 .vscode/
 .metadata/
 
+# Build directory
+software_emu/build
+hardware_emu/build
 
+# Dynamically generated files
+**/pyscript
+software_emu/py_scripts/optable.h
