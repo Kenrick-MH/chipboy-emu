@@ -127,13 +127,18 @@ def main():
     replacement_str = "\n"
     prefix_entries = "\n"
     
-    for index, func_name in optable.items():
-        replacement_str += f"\t[0x{index:02x}] \t= \t{func_name}, \n"
-    pass
-
-    for index, func_name in prefix_optable.items():
-        prefix_entries += f"\t[0x{index:02x}] \t= \t{func_name}, \n"
-    pass
+    uninmp_func_name = 'instr_unimplemented'
+    
+    for i in range(0, 0x100):
+        replacement_str += f"\t[0x{i:02x}] \t= \t{optable.get(i, uninmp_func_name)}, \n"
+        prefix_entries += f"\t[0x{i:02x}] \t= \t{prefix_optable.get(i, uninmp_func_name)}, \n"
+    
+    # for index, func_name in optable.items():
+    #     replacement_str += f"\t[0x{index:02x}] \t= \t{func_name}, \n"
+    # pass
+    # for index, func_name in prefix_optable.items():
+        
+    # pass
 
     optable_file = template_file_str.replace("/*[REPLACE_ME]*/", replacement_str)
     optable_file = optable_file.replace("/*PREFIX_OPTABLE*/", prefix_entries)

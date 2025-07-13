@@ -64,6 +64,7 @@ void instr_ld_hl_sp_imm8(cpu_context_t *context);
 void instr_ld_sp_hl(cpu_context_t *context);
 void instr_di(cpu_context_t *context);
 void instr_ei(cpu_context_t *context);
+void instr_unimplemented(cpu_context_t *context);
 
 /*
     Prefix instructions, is called by `instr_cb_prefix`

@@ -4,6 +4,7 @@
 #include <common.h>
 #include <bus.h>
 
+
 /* Regs */
 #define REGHIGH(reg16)              ((uint8_t) (((reg16) >> 8) & 0xff)  )
 #define REGLOW(reg16)               ((uint8_t)  ((reg16) & 0xff)        )
@@ -47,7 +48,6 @@ typedef struct cpu_context {
     register_t hl;
     uint16_t sp;
     uint16_t pc;
-    uint64_t cycles;
 
     /* 
         Interrupt flag. 
