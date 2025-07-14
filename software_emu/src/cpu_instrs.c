@@ -543,8 +543,7 @@ void instr_jp_cc(cpu_context_t *context, addr_t address, uint8_t condition)
 }
 
 void instr_jr_cc(cpu_context_t *context, int8_t addr_offset, uint8_t condition)
-{
-    
+{  
     uint16_t new_addr;
 
     if (!is_branch_taken(context, condition)) {

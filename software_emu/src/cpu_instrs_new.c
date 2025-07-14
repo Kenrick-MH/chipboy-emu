@@ -319,7 +319,21 @@ void instr_dec_r16          (cpu_context_t *context, uint8_t opcode)
     context->cycles += 2;
 }
 
-void instr_ld_r8_imm8       (cpu_context_t *context, uint8_t opcode);
+void instr_ld_r8_imm8       (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t imm8 = read_imm8(context);
+    uint8_t dest_num = (opcode >> 3) & 0x7;
+    
+    write_reg8(context, dest_num, imm8);
+    
+    if (dest_num == R8_HL_VAL) {
+        context->cycles += 3;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
 void instr_rlca             (cpu_context_t *context, uint8_t opcode);
 void instr_rrca             (cpu_context_t *context, uint8_t opcode);
 void instr_rla              (cpu_context_t *context, uint8_t opcode);
@@ -359,16 +373,110 @@ void instr_ccf              (cpu_context_t *context, uint8_t opcode)
     context->cycles += 1;
 }
 
+void instr_jr_imm8          (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t condition = (opcode >> 3) & 0x3;
+    int8_t addr_offset = (int8_t) read_imm8(context);
+    uint16_t new_addr;
+
+    uint8_t abs_val = (addr_offset > 0) ? addr_offset : -addr_offset;
+
+    /* Calculate address */
+    if (addr_offset > 0){
+        context->pc += abs_val;
+    } else {
+        context->pc -= abs_val;
+    }
+
+    context->cycles += 3;
+}
+
+void instr_jr_cond_imm8     (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t condition = (opcode >> 3) & 0x3;
+    int8_t addr_offset = (int8_t) read_imm8(context);
+    uint16_t new_addr;
+
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 2;
+        return;
+    }
+
+    uint8_t abs_val = (addr_offset > 0) ? addr_offset : -addr_offset;
+
+    /* Calculate address */
+    if (addr_offset > 0){
+        context->pc += abs_val;
+    } else {
+        context->pc -= abs_val;
+    }
+
+    context->cycles += 3;
+}
 
 
-void instr_jr_imm8          (cpu_context_t *context, uint8_t opcode);
-void instr_jr_cond_imm8     (cpu_context_t *context, uint8_t opcode);
 void instr_stop             (cpu_context_t *context, uint8_t opcode);
-void instr_ld_r8_r8         (cpu_context_t *context, uint8_t opcode);
+
+
+void instr_ld_r8_r8         (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t src_num = opcode & 0x7;
+    uint8_t dest_num = (opcode >> 3) & 0x7;
+
+    uint8_t reg_val = read_reg8(context, src_num);
+    write_reg8(context, dest_num, reg_val);
+
+    if (dest_num == R8_HL_VAL) {
+        context->cycles += 2;
+        return;
+    }
+
+    context->cycles += 1;
+}
+
 void instr_halt             (cpu_context_t *context, uint8_t opcode);
-void instr_alu_op_r8        (cpu_context_t *context, uint8_t opcode);
-void instr_alu_op_imm8      (cpu_context_t *context, uint8_t opcode);
-void instr_ret_cond         (cpu_context_t *context, uint8_t opcode);
+void instr_alu_op_r8        (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t reg8 = opcode & 0x7;
+    uint8_t alu_opcode = (opcode >> 3) & 0x7;
+    uint8_t reg_val;
+
+    reg_val = read_reg8(context, reg8);
+    
+    /* Set accumulator to the proper values */
+    alu_op8(context, alu_opcode, reg_val);
+    if (reg8 == R8_HL_VAL){
+        context->cycles += 2;
+    } else context->cycles += 1;
+}
+
+void instr_alu_op_imm8      (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t alu_opcode = (opcode >> 3) & 0x7;
+    uint8_t imm8 = read_imm8(context);
+    alu_op8(context, alu_opcode, imm8);
+
+    /* Regardless of OP, this always takes two cycles */
+    context->cycles += 2;
+}
+
+void instr_ret_cond         (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t reg_high, reg_low;
+    uint8_t condition = (opcode >> 3) & 0x3;
+
+    /* Condition not met */
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 2;
+        return;
+    }
+
+    reg_low = bus_read(context->sp++);
+    reg_high = bus_read(context->sp++);
+
+    context->pc = REGFULL(reg_high, reg_low);
+    context->cycles += 5;
+}
 
 void instr_ret              (cpu_context_t *context, uint8_t opcode)
 {
@@ -421,19 +529,92 @@ void instr_jp_hl            (cpu_context_t *context, uint8_t opcode)
 }
 
 
-void instr_call_cond_imm16  (cpu_context_t *context, uint8_t opcode);
+void instr_call_cond_imm16  (cpu_context_t *context, uint8_t opcode){
+    addr_t label = read_imm16(context);
+    uint8_t condition = (opcode >> 3) & 3;
 
+    if (!is_branch_taken(context, condition)) {
+        context->cycles += 3;
+        return;
+    }
+    
+    /* Push PC on stack */
+    bus_write(context->sp--, REGHIGH(context->pc));
+    bus_write(context->sp--, REGLOW(context->pc));
+
+    context->pc = label;
+    context->cycles += 6;
+}
 
 void instr_call_imm16       (cpu_context_t *context, uint8_t opcode){
+    addr_t label = read_imm16(context);
 
+    /* Push PC to stack */
+    bus_write(context->sp--, REGHIGH(context->pc));
+    bus_write(context->sp--, REGLOW(context->pc));
 
-    
+    context->pc = label;
+    context->cycles += 6;
 }
 
 void instr_rst_tgt3         (cpu_context_t *context, uint8_t opcode);
-void instr_pop_r16stk       (cpu_context_t *context, uint8_t opcode);
-void instr_push_r16stk      (cpu_context_t *context, uint8_t opcode);
+
+
+void instr_pop_r16stk       (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r16stk = (opcode >> 4) & 0x3;
+    uint8_t reg_high, reg_low;
+    uint16_t full_val;
+
+    reg_low = bus_read(context->sp++);
+    reg_high = bus_read(context->sp++);
+
+    switch (r16stk)
+    {
+        case R16STK_BC: context->bc.full = REGFULL(reg_high, reg_low); break;
+        case R16STK_DE: context->de.full = REGFULL(reg_high, reg_low); break;
+        case R16STK_HL: context->hl.full = REGFULL(reg_high, reg_low); break;
+        case R16STK_AF: context->af.full = REGFULL(reg_high, reg_low); break;
+    
+        default:
+            break;
+    }
+
+    context->cycles += 3;
+}
+
+
+void instr_push_r16stk      (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r16stk = (opcode >> 4) & 0x3;
+    uint16_t reg_data;
+    switch (r16stk)
+    {
+        case R16STK_BC: reg_data = context->bc.full; break;
+        case R16STK_DE: reg_data = context->de.full; break;
+        case R16STK_HL: reg_data = context->hl.full; break;
+        case R16STK_AF: reg_data = context->af.full; break;
+        
+        default:
+            break;
+    }
+    
+    /* 
+        TODO: 
+            - Handle stack overflow mechanism, for now, let the bus handle it
+    */
+
+    /* Write HIGH part */
+    bus_write(context->sp--, REGHIGH(reg_data));
+    bus_write(context->sp--, REGLOW(reg_data));
+    context->cycles += 4;
+}
+
+/* */
 void instr_cb_prefix        (cpu_context_t *context, uint8_t opcode);
+
+
+
 void instr_ldh_cmem_a       (cpu_context_t *context, uint8_t opcode);
 void instr_ldh_imm8mem_a    (cpu_context_t *context, uint8_t opcode);
 void instr_ld_imm16mem_a    (cpu_context_t *context, uint8_t opcode);
