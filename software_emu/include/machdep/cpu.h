@@ -48,6 +48,7 @@ typedef struct cpu_context {
     register_t hl;
     uint16_t sp;
     uint16_t pc;
+    uint64_t cycles;
 
     /* 
         Interrupt flag. 

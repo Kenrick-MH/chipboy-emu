@@ -10,7 +10,7 @@ OPTABLE_FILTERS : dict[BitFilter, InstructionStr] = {
     '00xx_0001': 'instr_ld_r16_imm16',
     '00xx_0010': 'instr_ld_r16mem_a',
     '00xx_1010': 'instr_ld_a_r16mem',
-    '0000_1000': 'instr_imm16mem_sp',
+    '0000_1000': 'instr_ld_imm16mem_sp',
     
     '00xx_0011': 'instr_inc_r16',
     '00xx_1011': 'instr_dec_r16',
@@ -60,6 +60,7 @@ OPTABLE_FILTERS : dict[BitFilter, InstructionStr] = {
     '1110_0000': 'instr_ldh_imm8mem_a',
     '1110_1010': 'instr_ld_imm16mem_a',
     '1111_0010': 'instr_ldh_a_cmem',
+    '1111_0000': 'instr_ldh_a_imm8mem',
     '1111_1010': 'instr_ld_a_imm16mem',
     
     '1110_1000': 'instr_add_sp_imm8',
