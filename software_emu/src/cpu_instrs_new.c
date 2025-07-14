@@ -58,7 +58,7 @@
 #define R8_E            0x3
 #define R8_H            0x4
 #define R8_L            0x5
-#define R8_HL_VAL       0x6
+#define R8_HL_MEM       0x6
 #define R8_A            0x7
 
 /* 16-bit Register Indexes */
@@ -94,7 +94,7 @@ static uint8_t read_reg8(cpu_context_t *context, uint8_t r8_code)
         case R8_L: reg_val = context->hl.lo; break;
 
         /* Memory read instruction from HL */
-        case R8_HL_VAL:
+        case R8_HL_MEM:
             addr_t addr = (addr_t) context->hl.full;
             reg_val = bus_read(addr); 
             break;
@@ -123,7 +123,7 @@ static void write_reg8(cpu_context_t *context, uint8_t r8_code, uint8_t val)
         case R8_L: context->hl.lo = val; break;
 
         /* Memory read instruction from HL */
-        case R8_HL_VAL:
+        case R8_HL_MEM:
             addr_t addr = (addr_t) context->hl.full;
             return bus_write(addr, val); 
             break;
@@ -274,17 +274,23 @@ static void rr_r8(cpu_context_t *context, uint8_t r8_code)
 {
     uint8_t new_val;
     uint8_t prev_status = read_status(context);
+    uint8_t status = 0x0;
     uint8_t r8_val = read_reg8(context, r8_code);
     uint8_t lsb = r8_val & 0x1;
     uint8_t prev_carry = CPU_STATUS_C_TEST(prev_status);
     
-    /* Set carry to be LSB */
-    set_status(context, 
-                CPU_STATUS_SET(prev_status, CPU_STATUS_MASK_C, lsb));
-
+    /* Previous carry becomes MSB */
     new_val = (r8_val >> 1) | (prev_carry << 7);
+
+    /* Set carry to be previous LSB */
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, lsb);
+
+    /* Set zero flag */
+    /* Weird behaviour, need to zero out the Z flag if register is A*/
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (new_val == 0));
+ 
     write_reg8(context, r8_code, new_val);
-    
+    set_status(context, status);    
 }
 
 
@@ -296,16 +302,22 @@ static void rl_r8(cpu_context_t *context, uint8_t r8_code)
 {
     uint8_t new_val;
     uint8_t prev_status = read_status(context);
+    uint8_t status = 0x0;
     uint8_t r8_val = read_reg8(context, r8_code);
     uint8_t msb = r8_val >> 7;
     uint8_t prev_carry = CPU_STATUS_C_TEST(prev_status);
     
-    /* Set carry to be LSB */
-    set_status(context, 
-                CPU_STATUS_SET(prev_status, CPU_STATUS_MASK_C, msb));
-
     /* Prev carry becomes the LSB */
     new_val = (r8_val << 1) | (prev_carry);
+    
+    /* Set MSB to be carry */
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, msb);
+
+    /* Set Z flag if zero */
+    /* Weird behaviour, need to zero out the Z flag if register is A*/
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (new_val == 0));
+
+    set_status(context, status);
     write_reg8(context, r8_code, new_val);
 }
 
@@ -319,9 +331,11 @@ static void rlc_r8(cpu_context_t *context, uint8_t r8_code)
     uint8_t status = 0x0;
     uint8_t r8_val = read_reg8(context, r8_code);
     uint8_t msb = r8_val >> 7;
+    uint8_t result = (r8_val << 1) | msb;
 
-    if (msb) status |= CPU_STATUS_MASK_C;
-    write_reg8(context, r8_code, (r8_val << 1) | msb);
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (result == 0));
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, msb);
+    write_reg8(context, r8_code, result);
     set_status(context, status);
 }
 
@@ -334,9 +348,11 @@ static void rrc_r8(cpu_context_t *context, uint8_t r8_code)
     uint8_t status = 0x0;
     uint8_t r8_val = read_reg8(context, r8_code);
     uint8_t lsb = r8_val & 0x1;
+    uint8_t result = (r8_val >> 1) | (lsb << 7);
 
-    if (lsb) status |= CPU_STATUS_MASK_C;
-    write_reg8(context, r8_code, (r8_val >> 1) | (lsb << 7));
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (result == 0));
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, lsb);
+    write_reg8(context, r8_code, result);
     set_status(context, status);
 }
 
@@ -400,7 +416,7 @@ void instr_ld_r8_imm8       (cpu_context_t *context, uint8_t opcode)
     
     write_reg8(context, dest_num, imm8);
     
-    if (dest_num == R8_HL_VAL) {
+    if (dest_num == R8_HL_MEM) {
         context->cycles += 3;
         return;
     }
@@ -410,25 +426,41 @@ void instr_ld_r8_imm8       (cpu_context_t *context, uint8_t opcode)
 
 void instr_rlca             (cpu_context_t *context, uint8_t opcode)
 {
+    uint8_t status = read_status(context);
     rlc_r8(context, R8_A);
+
+    /* Weird behaviour: zero flag is set regardless */
+    set_status(context, status & (~CPU_STATUS_MASK_Z));
     context->cycles += 1;
 }
 
 void instr_rrca             (cpu_context_t *context, uint8_t opcode)
 {
+    uint8_t status = read_status(context);
     rrc_r8(context, R8_A);
+
+    /* Weird behaviour: zero flag is set regardless */
+    set_status(context, status & (~CPU_STATUS_MASK_Z));
     context->cycles += 1;
 }
 
 void instr_rla              (cpu_context_t *context, uint8_t opcode)
 {
+    uint8_t status = read_status(context);
     rl_r8(context, R8_A);
+
+    /* Weird behaviour: zero flag is set regardless */
+    set_status(context, status & (~CPU_STATUS_MASK_Z));
     context->cycles += 1;
 }
 
 void instr_rra              (cpu_context_t *context, uint8_t opcode)
 {
+    uint8_t status = read_status(context);
     rr_r8(context, R8_A);
+
+    /* Weird behaviour: zero flag is set regardless */
+    set_status(context, status & (~CPU_STATUS_MASK_Z));
     context->cycles += 1;
 }
 
@@ -520,7 +552,7 @@ void instr_ld_r8_r8         (cpu_context_t *context, uint8_t opcode)
     uint8_t reg_val = read_reg8(context, src_num);
     write_reg8(context, dest_num, reg_val);
 
-    if (dest_num == R8_HL_VAL) {
+    if (dest_num == R8_HL_MEM) {
         context->cycles += 2;
         return;
     }
@@ -539,7 +571,7 @@ void instr_alu_op_r8        (cpu_context_t *context, uint8_t opcode)
     
     /* Set accumulator to the proper values */
     alu_op8(context, alu_opcode, reg_val);
-    if (reg8 == R8_HL_VAL){
+    if (reg8 == R8_HL_MEM){
         context->cycles += 2;
     } else context->cycles += 1;
 }
@@ -767,3 +799,190 @@ void instr_ei               (cpu_context_t *context, uint8_t opcode);
  *                       PREFIXED CODE
  * ===========================================================
  */
+
+void instr_rlc_r8     (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    rlc_r8(context, r8_code);
+
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+void instr_rrc_r8     (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    rrc_r8(context, r8_code);
+
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+void instr_rl_r8      (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    rl_r8(context, r8_code);
+
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+void instr_rr_r8      (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    rr_r8(context, r8_code);
+
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+void instr_sla_r8     (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t status = 0x0;
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t res = r8_val << 1;
+
+    write_reg8(context, r8_code, res);
+
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_Z, (res == 0));
+    
+    /* Set carry if MSB is 1*/
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_C, (r8_val >> 7));
+
+    set_status(context, status);
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+
+void instr_sra_r8     (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t status = 0x0;
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t sign_mask = r8_val & 0x80;
+
+    /* Preserve sign in result */
+    uint8_t res = (r8_val >> 1) | sign_mask;
+    
+    write_reg8(context, r8_code, res);
+
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_Z, (res == 0));
+    
+    /* Set carry if LSB is 1*/
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_C, (r8_val & 0x1));
+
+    set_status(context, status);
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+void instr_swap_r8    (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t status = 0x0;
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t r8_swapped = 
+    //    hi -> lo            lo -> hi
+        (r8_val >> 4) | ((r8_val & 0xF) << 4);
+
+    write_reg8(context, r8_code, r8_swapped);
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_Z, (r8_swapped == 0)); 
+    set_status(context, status);
+
+    context->cycles += 2;
+}
+
+void instr_srl_r8     (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t status = 0x0;
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t res = r8_val >> 1;
+
+    write_reg8(context, r8_code, res);
+
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_Z, (res == 0));
+    
+    /* Set carry if LSB is 1*/
+    status = CPU_STATUS_SET(status, 
+                        CPU_STATUS_MASK_C, (r8_val & 0x1));
+
+    set_status(context, status);
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+        return;
+    }
+
+    context->cycles += 2;
+}
+
+void instr_bit_b3_r8  (cpu_context_t *context, uint8_t opcode);
+
+void instr_res_b3_r8  (cpu_context_t *context, uint8_t opcode)
+{   
+    uint8_t reg_val;
+    uint8_t mask;
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t bit_select = (opcode >> 3) & 0x7;
+
+    reg_val = read_reg8(context, r8_code);
+    mask = 0x1 << bit_select;
+    write_reg8(context, r8_code, reg_val & (~mask));
+    
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+    } else context->cycles += 2;
+}
+
+void instr_set_b3_r8  (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t reg_val;
+    uint8_t mask;
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t bit_select = (opcode >> 3) & 0x7;
+    assert (bit_select < 0x8);
+
+    reg_val = read_reg8(context, r8_code);
+    mask = 0x1 << bit_select;
+    write_reg8(context, r8_code, reg_val | mask);
+    
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 4;
+    } else context->cycles += 2;
+}
