@@ -310,7 +310,7 @@ static void alu_op8(cpu_context_t *context,
         Common case:
         -  Z flag is set when result (accumulator) is zero. 
     */
-    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_BIT_Z;
+    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_MASK_Z;
     set_status(context, flags);
 
     if (alu8_opcode != ALU_CP)  
@@ -390,7 +390,7 @@ void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
     status = read_status(context) & (CPU_STATUS_BIT_C);
 
     if ((old_val & 0x0f) == 0x0f)            status |= CPU_STATUS_BIT_H;
-    if ((uint8_t) (old_val+1) == 0x0 )     status |= CPU_STATUS_BIT_Z;
+    if ((uint8_t) (old_val+1) == 0x0 )     status |= CPU_STATUS_MASK_Z;
 
     set_status(context, status);
 
@@ -419,7 +419,7 @@ void instr_decr8(cpu_context_t *context, uint8_t reg8_num)
 
     status |= CPU_STATUS_BIT_N;
     if ((old_val & 0x0f) == 0x00)             status |= CPU_STATUS_BIT_H;
-    if ((uint8_t) (old_val-1) == 0x0)       status |= CPU_STATUS_BIT_Z;
+    if ((uint8_t) (old_val-1) == 0x0)       status |= CPU_STATUS_MASK_Z;
 
     set_status(context, status);
     if (reg8_num == R8_HL_VAL){
@@ -621,7 +621,7 @@ void instr_ccf(cpu_context_t *context)
     uint8_t prev_status = read_status(context);
 
     /* Preserve the Z flag, complement C flag */
-    status |= (prev_status & CPU_STATUS_BIT_Z) | (~prev_status & CPU_STATUS_BIT_C); 
+    status |= (prev_status & CPU_STATUS_MASK_Z) | (~prev_status & CPU_STATUS_BIT_C); 
     set_status(context, status);
     context->cycles += 1;
 }
@@ -632,7 +632,7 @@ void instr_scf(cpu_context_t *context)
     uint8_t prev_status = read_status(context);
 
     /* Preserve the Z flag, set C flag */
-    status |= (prev_status & CPU_STATUS_BIT_Z) | CPU_STATUS_BIT_C; 
+    status |= (prev_status & CPU_STATUS_MASK_Z) | CPU_STATUS_BIT_C; 
     set_status(context, status);
     context->cycles += 1;
 }

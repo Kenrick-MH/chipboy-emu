@@ -12,17 +12,24 @@
 #define ALU_CP          0x7
 
 /* Status flags */
-#define CPU_STATUS_BIT_Z    0x80
-#define CPU_STATUS_BIT_N    0x40
-#define CPU_STATUS_BIT_H    0x20
-#define CPU_STATUS_BIT_C    0x10
+#define CPU_STATUS_MASK_Z    0x80
+#define CPU_STATUS_MASK_N    0x40
+#define CPU_STATUS_MASK_H    0x20
+#define CPU_STATUS_MASK_C    0x10
 
 /* Extract Status */
-#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_Z) >> 7)) 
-#define CPU_STATUS_N_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_N) >> 6))
-#define CPU_STATUS_H_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_H) >> 5))
-#define CPU_STATUS_C_TEST(status_reg)   ((((status_reg) & CPU_STATUS_BIT_C) >> 4))
+#define CPU_STATUS_TEST(status_reg, status_mask) \
+   ( ((status_reg) & (status_mask)) ? 1 : 0)    
 
+#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_Z) >> 7)) 
+#define CPU_STATUS_N_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_N) >> 6))
+#define CPU_STATUS_H_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_H) >> 5))
+#define CPU_STATUS_C_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_C) >> 4))
+
+/* Set individual status */
+
+#define CPU_STATUS_SET(status_reg, status_code, value) \
+ ( (value) ? ((status_reg) & ~(status_code)) : ((status_reg) | (status_code)))
 
 // Carry (Addition) calculations
 #define CHECK_CARRY(a, b)         (((uint16_t)(a) + (uint16_t)(b)) > 0xFF)
@@ -172,17 +179,11 @@ static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code, uint16_t va
     }
 }
 
-/**
- *  
- */
 static uint8_t read_status(cpu_context_t *context)
-{
-    return context->af.lo;
+{ 
+    return context->af.lo; 
 }
 
-/**
- *  
- */
 static void set_status(cpu_context_t *context, uint8_t flags)
 {
     context->af.lo = flags;
@@ -206,8 +207,8 @@ static void alu_op8(cpu_context_t *context,
         case ALU_ADD    :
         case ALU_ADDC   : 
             wide_operand += (alu8_opcode == ALU_ADDC) ? CPU_STATUS_C_TEST(prev_flags) : 0;
-            if (CHECK_CARRY(accumulator, wide_operand))       flags |= CPU_STATUS_BIT_C;
-            if (CHECK_HALF_CARRY(accumulator, wide_operand))  flags |= CPU_STATUS_BIT_H;
+            if (CHECK_CARRY(accumulator, wide_operand))       flags |= CPU_STATUS_MASK_C;
+            if (CHECK_HALF_CARRY(accumulator, wide_operand))  flags |= CPU_STATUS_MASK_H;
             accumulator += wide_operand; 
             break;
 
@@ -215,14 +216,14 @@ static void alu_op8(cpu_context_t *context,
         case ALU_SUBC   :
         case ALU_CP     : 
             wide_operand -= (alu8_opcode == ALU_SUBC) ? CPU_STATUS_C_TEST(prev_flags) : 0;
-            if (CHECK_BORROW(accumulator, wide_operand))       flags |= CPU_STATUS_BIT_C;
-            if (CHECK_HALF_BORROW(accumulator, wide_operand))  flags |= CPU_STATUS_BIT_H;
-            flags |= CPU_STATUS_BIT_N;
+            if (CHECK_BORROW(accumulator, wide_operand))       flags |= CPU_STATUS_MASK_C;
+            if (CHECK_HALF_BORROW(accumulator, wide_operand))  flags |= CPU_STATUS_MASK_H;
+            flags |= CPU_STATUS_MASK_N;
             accumulator -= wide_operand; break;
             
         case ALU_AND    :             
             accumulator &= wide_operand;
-            flags |= CPU_STATUS_BIT_H; 
+            flags |= CPU_STATUS_MASK_H; 
             break;
 
         case ALU_OR     : accumulator |= wide_operand; break;
@@ -236,7 +237,7 @@ static void alu_op8(cpu_context_t *context,
         Common case:
         -  Z flag is set when result (accumulator) is zero. 
     */
-    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_BIT_Z;
+    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_MASK_Z;
     set_status(context, flags);
 
     if (alu8_opcode != ALU_CP)  
@@ -263,6 +264,80 @@ static bool is_branch_taken(cpu_context_t *context, uint8_t condition)
         default:
             return true;
     }
+}
+
+/*
+    Rotates 8-bit register right through the carry
+    flag.
+*/
+static void rr_r8(cpu_context_t *context, uint8_t r8_code)
+{
+    uint8_t new_val;
+    uint8_t prev_status = read_status(context);
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t lsb = r8_val & 0x1;
+    uint8_t prev_carry = CPU_STATUS_C_TEST(prev_status);
+    
+    /* Set carry to be LSB */
+    set_status(context, 
+                CPU_STATUS_SET(prev_status, CPU_STATUS_MASK_C, lsb));
+
+    new_val = (r8_val >> 1) | (prev_carry << 7);
+    write_reg8(context, r8_code, new_val);
+    
+}
+
+
+/*
+    Rotates 8-bit register left through the carry
+    flag.
+*/
+static void rl_r8(cpu_context_t *context, uint8_t r8_code)
+{
+    uint8_t new_val;
+    uint8_t prev_status = read_status(context);
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t msb = r8_val >> 7;
+    uint8_t prev_carry = CPU_STATUS_C_TEST(prev_status);
+    
+    /* Set carry to be LSB */
+    set_status(context, 
+                CPU_STATUS_SET(prev_status, CPU_STATUS_MASK_C, msb));
+
+    /* Prev carry becomes the LSB */
+    new_val = (r8_val << 1) | (prev_carry);
+    write_reg8(context, r8_code, new_val);
+}
+
+
+/*
+    Rotates 8-bit register left. Sets the carry flag
+    if MSB is 1. 
+*/
+static void rlc_r8(cpu_context_t *context, uint8_t r8_code)
+{
+    uint8_t status = 0x0;
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t msb = r8_val >> 7;
+
+    if (msb) status |= CPU_STATUS_MASK_C;
+    write_reg8(context, r8_code, (r8_val << 1) | msb);
+    set_status(context, status);
+}
+
+/*
+    Rotates 8-bit register right. Sets the carry flag
+    if LSB is 1. 
+*/
+static void rrc_r8(cpu_context_t *context, uint8_t r8_code)
+{
+    uint8_t status = 0x0;
+    uint8_t r8_val = read_reg8(context, r8_code);
+    uint8_t lsb = r8_val & 0x1;
+
+    if (lsb) status |= CPU_STATUS_MASK_C;
+    write_reg8(context, r8_code, (r8_val >> 1) | (lsb << 7));
+    set_status(context, status);
 }
 
 static uint16_t read_imm16(cpu_context_t *context){
@@ -295,11 +370,10 @@ void instr_ld_r16_imm16     (cpu_context_t *context, uint8_t opcode)
 
 void instr_ld_r16mem_a      (cpu_context_t *context, uint8_t opcode){
     
-
 }
 
-
 void instr_ld_a_r16mem      (cpu_context_t *context, uint8_t opcode);
+
 void instr_ld_imm16mem_sp   (cpu_context_t *context, uint8_t opcode);
 void instr_add_hl_r16       (cpu_context_t *context, uint8_t opcode);
 
@@ -334,10 +408,30 @@ void instr_ld_r8_imm8       (cpu_context_t *context, uint8_t opcode)
     context->cycles += 2;
 }
 
-void instr_rlca             (cpu_context_t *context, uint8_t opcode);
-void instr_rrca             (cpu_context_t *context, uint8_t opcode);
-void instr_rla              (cpu_context_t *context, uint8_t opcode);
-void instr_rra              (cpu_context_t *context, uint8_t opcode);
+void instr_rlca             (cpu_context_t *context, uint8_t opcode)
+{
+    rlc_r8(context, R8_A);
+    context->cycles += 1;
+}
+
+void instr_rrca             (cpu_context_t *context, uint8_t opcode)
+{
+    rrc_r8(context, R8_A);
+    context->cycles += 1;
+}
+
+void instr_rla              (cpu_context_t *context, uint8_t opcode)
+{
+    rl_r8(context, R8_A);
+    context->cycles += 1;
+}
+
+void instr_rra              (cpu_context_t *context, uint8_t opcode)
+{
+    rr_r8(context, R8_A);
+    context->cycles += 1;
+}
+
 void instr_daa              (cpu_context_t *context, uint8_t opcode);
 
 void instr_cpl              (cpu_context_t *context, uint8_t opcode)
@@ -345,7 +439,7 @@ void instr_cpl              (cpu_context_t *context, uint8_t opcode)
     (void) opcode;
 
     context->af.hi = ~context->af.hi;
-    set_status(context, CPU_STATUS_BIT_N | CPU_STATUS_BIT_H);
+    set_status(context, CPU_STATUS_MASK_N | CPU_STATUS_MASK_H);
     context->cycles += 1;
 }
 
@@ -357,7 +451,7 @@ void instr_scf              (cpu_context_t *context, uint8_t opcode)
     uint8_t prev_status = read_status(context);
 
     /* Preserve the Z flag, set C flag */
-    status |= (prev_status & CPU_STATUS_BIT_Z) | CPU_STATUS_BIT_C; 
+    status |= (prev_status & CPU_STATUS_MASK_Z) | CPU_STATUS_MASK_C; 
     set_status(context, status);
     context->cycles += 1;
 }
@@ -368,7 +462,7 @@ void instr_ccf              (cpu_context_t *context, uint8_t opcode)
     uint8_t prev_status = read_status(context);
 
     /* Preserve the Z flag, complement C flag */
-    status |= (prev_status & CPU_STATUS_BIT_Z) | (~prev_status & CPU_STATUS_BIT_C); 
+    status |= (prev_status & CPU_STATUS_MASK_Z) | (~prev_status & CPU_STATUS_MASK_C); 
     set_status(context, status);
     context->cycles += 1;
 }
@@ -610,16 +704,58 @@ void instr_push_r16stk      (cpu_context_t *context, uint8_t opcode)
     context->cycles += 4;
 }
 
-/* */
 void instr_cb_prefix        (cpu_context_t *context, uint8_t opcode);
 
+void instr_ldh_cmem_a       (cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;  
+    addr_t addr = 0xFF00 + read_reg8(context, R8_C);
+    bus_write(addr, read_reg8(context, R8_A));
+    context->cycles += 2;
+}
 
+void instr_ldh_imm8mem_a    (cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;  
+    uint8_t imm8 = read_imm8(context);
+    addr_t addr = 0xFF00 + imm8;
+    bus_write(addr, read_reg8(context, R8_A));
+    context->cycles += 3;
+}
 
-void instr_ldh_cmem_a       (cpu_context_t *context, uint8_t opcode);
-void instr_ldh_imm8mem_a    (cpu_context_t *context, uint8_t opcode);
-void instr_ld_imm16mem_a    (cpu_context_t *context, uint8_t opcode);
-void instr_ldh_a_cmem       (cpu_context_t *context, uint8_t opcode);
-void instr_ld_a_imm16mem    (cpu_context_t *context, uint8_t opcode);
+void instr_ld_imm16mem_a    (cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;
+    uint16_t imm16 = read_imm16(context);
+    bus_write((addr_t) imm16, read_reg8(context, R8_A));
+    context->cycles += 4;
+}
+
+void instr_ldh_a_cmem       (cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;  
+    addr_t addr = 0xFF00 + read_reg8(context, R8_C);
+    write_reg8(context, R8_A, bus_read(addr));
+    context->cycles += 2;
+}
+
+void instr_ldh_a_imm8mem    (cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;
+    uint8_t imm8 = read_imm8(context);
+    addr_t addr = 0xFF00 + imm8;
+    write_reg8(context, R8_A, bus_read(addr));
+    context->cycles += 3;
+}
+
+void instr_ld_a_imm16mem    (cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;
+    uint16_t imm16 = read_imm16(context);
+    write_reg8(context, R8_A, bus_read((addr_t) imm16));
+    context->cycles += 4;
+}
+
 void instr_add_sp_imm8      (cpu_context_t *context, uint8_t opcode);
 void instr_ld_hl_sp_imm8    (cpu_context_t *context, uint8_t opcode);
 void instr_ld_sp_hl         (cpu_context_t *context, uint8_t opcode);
