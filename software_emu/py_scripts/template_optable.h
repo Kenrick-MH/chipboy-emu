@@ -2,7 +2,7 @@
 #include <cpu_instrs.h>
 
 INSTR_FUNC optable[256] = {
-    /*[REPLACE_ME]*/
+    /*OPTABLE*/
 };
 
 INSTR_FUNC prefix_optable[256] = {

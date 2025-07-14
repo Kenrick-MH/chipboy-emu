@@ -141,7 +141,7 @@ def main():
         
     # pass
 
-    optable_file = template_file_str.replace("/*[REPLACE_ME]*/", replacement_str)
+    optable_file = template_file_str.replace("/*OPTABLE*/", replacement_str)
     optable_file = optable_file.replace("/*PREFIX_OPTABLE*/", prefix_entries)
     
     with open(os.path.join(py_dir, 'optable.h'), 'w') as f:
