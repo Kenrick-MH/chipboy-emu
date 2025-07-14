@@ -293,7 +293,6 @@ static void rr_r8(cpu_context_t *context, uint8_t r8_code)
     set_status(context, status);    
 }
 
-
 /*
     Rotates 8-bit register left through the carry
     flag.
@@ -390,7 +389,17 @@ void instr_ld_r16mem_a      (cpu_context_t *context, uint8_t opcode){
 
 void instr_ld_a_r16mem      (cpu_context_t *context, uint8_t opcode);
 
-void instr_ld_imm16mem_sp   (cpu_context_t *context, uint8_t opcode);
+void instr_ld_imm16mem_sp   (cpu_context_t *context, uint8_t opcode)
+{
+    addr_t addr = read_imm16(context);
+    uint16_t sp = read_reg16(context, R16_SP);
+
+    /* Store low half */
+    bus_write(addr, sp & 0xff);
+    bus_write(addr+1, sp >> 8);
+    context->cycles += 5;
+}
+
 void instr_add_hl_r16       (cpu_context_t *context, uint8_t opcode);
 
 void instr_inc_r16          (cpu_context_t *context, uint8_t opcode)
@@ -426,6 +435,7 @@ void instr_ld_r8_imm8       (cpu_context_t *context, uint8_t opcode)
 
 void instr_rlca             (cpu_context_t *context, uint8_t opcode)
 {
+    (void) opcode;
     uint8_t status = read_status(context);
     rlc_r8(context, R8_A);
 
@@ -436,6 +446,7 @@ void instr_rlca             (cpu_context_t *context, uint8_t opcode)
 
 void instr_rrca             (cpu_context_t *context, uint8_t opcode)
 {
+    (void) opcode;
     uint8_t status = read_status(context);
     rrc_r8(context, R8_A);
 
@@ -446,6 +457,7 @@ void instr_rrca             (cpu_context_t *context, uint8_t opcode)
 
 void instr_rla              (cpu_context_t *context, uint8_t opcode)
 {
+    (void) opcode;
     uint8_t status = read_status(context);
     rl_r8(context, R8_A);
 
@@ -456,6 +468,7 @@ void instr_rla              (cpu_context_t *context, uint8_t opcode)
 
 void instr_rra              (cpu_context_t *context, uint8_t opcode)
 {
+    (void) opcode;
     uint8_t status = read_status(context);
     rr_r8(context, R8_A);
 
@@ -790,7 +803,13 @@ void instr_ld_a_imm16mem    (cpu_context_t *context, uint8_t opcode)
 
 void instr_add_sp_imm8      (cpu_context_t *context, uint8_t opcode);
 void instr_ld_hl_sp_imm8    (cpu_context_t *context, uint8_t opcode);
-void instr_ld_sp_hl         (cpu_context_t *context, uint8_t opcode);
+void instr_ld_sp_hl         (cpu_context_t *context, uint8_t opcode)
+{   
+    (void) opcode;
+    write_reg16(context, R16_SP, read_reg16(context, R16_HL));
+    context->cycles += 2;
+}
+
 void instr_di               (cpu_context_t *context, uint8_t opcode);
 void instr_ei               (cpu_context_t *context, uint8_t opcode);
 
