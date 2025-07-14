@@ -161,7 +161,7 @@ static uint16_t read_reg16(cpu_context_t *context, uint8_t r16_code)
 /**
  *  Writes to register
  */
-static uint8_t write_reg16(cpu_context_t *context, uint8_t r16_code, uint16_t val)
+static void write_reg16(cpu_context_t *context, uint8_t r16_code, uint16_t val)
 {
     switch (r16_code)   
     {
@@ -762,3 +762,8 @@ void instr_ld_sp_hl         (cpu_context_t *context, uint8_t opcode);
 void instr_di               (cpu_context_t *context, uint8_t opcode);
 void instr_ei               (cpu_context_t *context, uint8_t opcode);
 
+/**
+ * ============================================================
+ *                       PREFIXED CODE
+ * ===========================================================
+ */
