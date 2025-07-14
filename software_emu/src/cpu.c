@@ -2,6 +2,9 @@
 #include <cpu.h>
 #include <bus.h>
 
+/* Note that this is dynamically generated */
+#include <optable.h>
+
 /* Register Placeholder values */
 #define REG_B 
 
@@ -32,6 +35,12 @@ void cpu_init()
 void cpu_step()
 {
     uint8_t opcode = cpu_fetch();
-    cpu_decode(opcode);
+    INSTR_FUNC op_func = optable[opcode];
+
+    /* Call the op func */
+    op_func(&cpu_context, opcode);
+
+
+
 }
 

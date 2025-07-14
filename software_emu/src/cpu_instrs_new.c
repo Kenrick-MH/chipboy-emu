@@ -1020,8 +1020,7 @@ void instr_set_b3_r8  (cpu_context_t *context, uint8_t opcode)
     uint8_t mask;
     uint8_t r8_code = opcode & 0x7;
     uint8_t bit_select = (opcode >> 3) & 0x7;
-    assert (bit_select < 0x8);
-
+    
     reg_val = read_reg8(context, r8_code);
     mask = 0x1 << bit_select;
     write_reg8(context, r8_code, reg_val | mask);
