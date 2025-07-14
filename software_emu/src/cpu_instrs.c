@@ -339,11 +339,44 @@ static bool is_branch_taken(cpu_context_t *context, uint8_t condition)
     }
 }
 
-void instr_nop(cpu_context_t *context)
-{
-    /* Do nothing, only increment cycle count */
-    ++context->cycles; 
+static uint16_t read_imm16(cpu_context_t *context){
+    uint8_t lo = bus_read(context->pc++);
+    uint8_t hi = bus_read(context->pc++);
+    return (hi << 8) | lo;
 }
+
+static uint8_t read_imm8(cpu_context_t *context){
+    return bus_read(context->pc++);
+}
+
+void instr_nop(cpu_context_t *context, uint8_t opcode)
+{
+    (void) opcode;
+    
+    /* Do nothing, only increment cycle count */
+    context->cycles += 1; 
+}
+
+void instr_ld_r16_imm16     (cpu_context_t *context, uint8_t opcode)
+{
+    /* Eat two bytes from the bus (note that this is little endian) */
+    uint16_t imm16 = read_imm16(context);
+    uint8_t r16code = (opcode & 0x30);
+
+    write_reg16(context, r16code, imm16);
+    context->cycles += 4;
+}
+
+void instr_ld_r16mem_a      (cpu_context_t *context, uint8_t opcode){
+    
+
+}
+
+
+void instr_ld_a_r16mem      (cpu_context_t *context, uint8_t opcode);
+void instr_ld_imm16mem_sp   (cpu_context_t *context, uint8_t opcode);
+
+
 
 
 void instr_incr8(cpu_context_t *context, uint8_t reg8_num)
