@@ -877,7 +877,6 @@ void instr_sla_r8     (cpu_context_t *context, uint8_t opcode)
     context->cycles += 2;
 }
 
-
 void instr_sra_r8     (cpu_context_t *context, uint8_t opcode)
 {
     uint8_t r8_code = opcode & 0x7;
@@ -905,6 +904,7 @@ void instr_sra_r8     (cpu_context_t *context, uint8_t opcode)
 
     context->cycles += 2;
 }
+
 void instr_swap_r8    (cpu_context_t *context, uint8_t opcode)
 {
     uint8_t r8_code = opcode & 0x7;
@@ -952,7 +952,32 @@ void instr_srl_r8     (cpu_context_t *context, uint8_t opcode)
     context->cycles += 2;
 }
 
-void instr_bit_b3_r8  (cpu_context_t *context, uint8_t opcode);
+void instr_bit_b3_r8  (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t reg_val;
+    uint8_t status = read_status(context);
+    uint8_t r8_code = opcode & 0x7;
+    uint8_t bit_select = (opcode >> 3) & 0x7;
+    uint8_t bit_set;
+    uint8_t select_mask;
+    uint8_t res;
+
+    reg_val = read_reg8(context, r8_code);
+    select_mask = 0x1 << bit_select;
+    bit_set = (reg_val >> bit_select) & 0x1;
+    res = bit_set ? 
+            (reg_val | select_mask) : (reg_val & ~select_mask);
+    
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (res == 0));
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_N, 0);
+    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_H, 1);
+
+    set_status(context, status);
+    
+    if (r8_code == R8_HL_MEM){
+        context->cycles += 3;
+    } else context->cycles += 2;
+}
 
 void instr_res_b3_r8  (cpu_context_t *context, uint8_t opcode)
 {   
