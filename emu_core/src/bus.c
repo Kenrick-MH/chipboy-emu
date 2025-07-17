@@ -29,6 +29,7 @@ static master_slave_conn_t *find_peripheral(addr_t addr)
 */
 int bus_read(addr_t addr, uint8_t *read_result)
 {
+    error_code_t error_code;
     master_slave_conn_t *periph_conn = find_peripheral(addr);
     
     /* SEGFAULT */
@@ -36,7 +37,7 @@ int bus_read(addr_t addr, uint8_t *read_result)
         return -1;
     }
 
-    uint8_t read_val;
+    return msconn_master_read(periph_conn, addr, read_result);
 }
 
 /*
@@ -44,7 +45,7 @@ int bus_read(addr_t addr, uint8_t *read_result)
     Returns:
         - error status
 */
-int bus_write(addr_t addr)
+int bus_write(addr_t addr, uint8_t value)
 {
     master_slave_conn_t *periph_conn = find_peripheral(addr);
     /* SEGFAULT */
@@ -52,4 +53,5 @@ int bus_write(addr_t addr)
         return -1;
     }
 
+    return msconn_master_write(periph_conn, addr, value);
 }
