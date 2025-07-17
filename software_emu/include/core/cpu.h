@@ -2,7 +2,7 @@
 #define CPU_H
 
 #include <common.h>
-#include <bus.h>
+#include <core/bus.h>
 
 
 /* Regs */
@@ -48,12 +48,14 @@ typedef struct cpu_context {
     register_t hl;
     uint16_t sp;
     uint16_t pc;
+
+    /* Cycles elapsed for CPU in m_cycles*/
     uint64_t cycles;
 
     /* 
-        Interrupt flag. 
+        Interrupt enable flag. 
     */
-    uint8_t ime;
+    uint8_t ie;
 
 } cpu_context_t;
 

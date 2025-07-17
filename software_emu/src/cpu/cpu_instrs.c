@@ -43,7 +43,6 @@
 */
 #define COND_ALWAYS     0x4
 
-
 /* Register Numbers */
 #define R8_B            0x0
 #define R8_C            0x1

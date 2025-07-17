@@ -20,6 +20,20 @@ typedef int64_t i64;
 // GameBoy uses 16-bit addres space.
 typedef uint16_t addr_t; 
 
+/* Timing units */
+
+/* 
+    Machine cycles (M-cycles) denote the amount of CPU cycles
+    elapsed. One M-cycle is 4 T-cycle.
+*/
+typedef uint64_t m_cycle_t;
+
+/**
+ *  Timing cycles (T-cycles) denote the actual cycles 
+ *  of the clock (from one rising edge to the 
+ *  next rising edge).
+ */
+typedef uint64_t t_cycle_t;
 
 /*
     Common macro defs here

@@ -1,15 +1,9 @@
 
-#include <cpu.h>
-#include <bus.h>
+#include <core/cpu.h>
+#include <core/bus.h>
 
 /* Note that this is dynamically generated */
 #include <optable.h>
-
-/* Register Placeholder values */
-#define REG_B 
-
-/* Get opcode of 16 bit instruction */
-#define GET_OPCODE(instr) ((instr) >> 8)
 
 /* 
     Singleton object for CPU.
@@ -39,8 +33,6 @@ void cpu_step()
 
     /* Call the op func */
     op_func(&cpu_context, opcode);
-
-
 
 }
 

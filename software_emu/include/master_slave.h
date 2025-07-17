@@ -20,10 +20,10 @@ typedef struct master_slave_conn
     /* Ending address (inclusive) of memory region (absolute address) */
     addr_t end_addr;
 
-    /* Slave implemented functions */
+    /* Slave implemented functions, reads in master address. */
+    uint8_t (*slave_read)(void *context, addr_t addr);
+    void (*slave_write)(void *context, addr_t addr, uint8_t value);
 
-    /* Master calls the functions below, these wrap around the slave functions */
-    
 } master_slave_conn_t;
 
 #endif // MASTER_SLAVE_H

@@ -8,12 +8,13 @@
 
 #include <common.h>
 #include <master_slave.h>
-
-typedef uint8_t addr_t;
+#include <core/memorymap.h>
 
 typedef struct bus
 {
-    /* Array of master-slave connections */
+    /* Array of master-slave connections, and size */
+    master_slave_conn_t **connections;
+    const unsigned connections_size;
 
 
 
@@ -28,10 +29,6 @@ void bus_init();
     Internals of bus
 */
 
-
-
-
-
 /*
     Write address to bus.
 */
@@ -41,8 +38,5 @@ uint8_t bus_write(addr_t addr, uint8_t value);
     Read data from bus.
 */
 uint8_t bus_read(addr_t addr);
-
-
-
 
 #endif
