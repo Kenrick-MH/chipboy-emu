@@ -24,7 +24,7 @@ typedef struct master_slave_conn
     void *slave_context;
 
     /* 
-        Slave implemented functions, reads in master address.
+        Slave implemented functions, uses adress offset from the slave's base pointer.
         Slaves register both the context and the function to serve the context.
     */
     error_code_t (*slave_read)(void *context, addr_t addr, uint8_t *read_val);
