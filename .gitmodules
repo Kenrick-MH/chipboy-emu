@@ -1,0 +1,3 @@
+[submodule "chipboy-gui"]
+	path = chipboy-gui
+	url = git@github.com:Kenrick-MH/chipboy-gui.git
