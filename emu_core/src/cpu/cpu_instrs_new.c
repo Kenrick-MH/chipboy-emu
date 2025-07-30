@@ -28,7 +28,7 @@
 
 /* Set individual status */
 
-#define CPU_STATUS_SET(status_reg, status_code, value) \
+#define CPU_STATUS_SETBIT(status_reg, status_code, value) \
  ( (value) ? ((status_reg) & ~(status_code)) : ((status_reg) | (status_code)))
 
 // Carry (Addition) calculations
@@ -283,11 +283,11 @@ static void rr_r8(cpu_context_t *context, uint8_t r8_code)
     new_val = (r8_val >> 1) | (prev_carry << 7);
 
     /* Set carry to be previous LSB */
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, lsb);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, lsb);
 
     /* Set zero flag */
     /* Weird behaviour, need to zero out the Z flag if register is A*/
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (new_val == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (new_val == 0));
  
     write_reg8(context, r8_code, new_val);
     set_status(context, status);    
@@ -310,11 +310,11 @@ static void rl_r8(cpu_context_t *context, uint8_t r8_code)
     new_val = (r8_val << 1) | (prev_carry);
     
     /* Set MSB to be carry */
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, msb);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, msb);
 
     /* Set Z flag if zero */
     /* Weird behaviour, need to zero out the Z flag if register is A*/
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (new_val == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (new_val == 0));
 
     set_status(context, status);
     write_reg8(context, r8_code, new_val);
@@ -332,8 +332,8 @@ static void rlc_r8(cpu_context_t *context, uint8_t r8_code)
     uint8_t msb = r8_val >> 7;
     uint8_t result = (r8_val << 1) | msb;
 
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (result == 0));
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, msb);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (result == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, msb);
     write_reg8(context, r8_code, result);
     set_status(context, status);
 }
@@ -349,8 +349,8 @@ static void rrc_r8(cpu_context_t *context, uint8_t r8_code)
     uint8_t lsb = r8_val & 0x1;
     uint8_t result = (r8_val >> 1) | (lsb << 7);
 
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (result == 0));
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_C, lsb);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (result == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, lsb);
     write_reg8(context, r8_code, result);
     set_status(context, status);
 }
@@ -477,7 +477,35 @@ void instr_rra              (cpu_context_t *context, uint8_t opcode)
     context->cycles += 1;
 }
 
-void instr_daa              (cpu_context_t *context, uint8_t opcode);
+void instr_daa              (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t status = read_status(context);
+    uint8_t new_status = status;
+    uint8_t old_a_val = read_reg8(context, R8_A);
+    uint16_t new_a_val = (uint16_t) old_a_val;
+    uint8_t adjustment = 0;
+
+    if (CPU_STATUS_N_TEST(status)) {
+        adjustment += (CPU_STATUS_H_TEST(status) ? 0x6u : 0)
+                        + (CPU_STATUS_C_TEST(status) ? 0x60u : 0);
+    
+        new_a_val -= adjustment;
+    
+    } else {
+        adjustment += ((CPU_STATUS_H_TEST(status) || (old_a_val & 0xfu > 0x9u)) ? 0x6u : 0)
+                        + ((CPU_STATUS_C_TEST(status) || (old_a_val > 0x99u))? 0x60u : 0);
+    
+        new_a_val += adjustment;
+    } 
+
+    write_reg8(context, R8_A, (uint8_t) (new_a_val & 0xffu));
+    new_status = CPU_STATUS_SETBIT(new_status, CPU_STATUS_MASK_Z, new_a_val == 0);
+    new_status = CPU_STATUS_SETBIT(new_status, CPU_STATUS_MASK_H, 0x0u);
+    new_status = CPU_STATUS_SETBIT(new_status, CPU_STATUS_MASK_C, new_a_val > 0xffu);
+    
+    set_status(context, new_status);
+    context->cycles += 1;
+}
 
 void instr_cpl              (cpu_context_t *context, uint8_t opcode)
 {
@@ -880,11 +908,11 @@ void instr_sla_r8     (cpu_context_t *context, uint8_t opcode)
 
     write_reg8(context, r8_code, res);
 
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_Z, (res == 0));
     
     /* Set carry if MSB is 1*/
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_C, (r8_val >> 7));
 
     set_status(context, status);
@@ -908,11 +936,11 @@ void instr_sra_r8     (cpu_context_t *context, uint8_t opcode)
     
     write_reg8(context, r8_code, res);
 
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_Z, (res == 0));
     
     /* Set carry if LSB is 1*/
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_C, (r8_val & 0x1));
 
     set_status(context, status);
@@ -939,7 +967,7 @@ void instr_swap_r8    (cpu_context_t *context, uint8_t opcode)
         return;
     }
 
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_Z, (r8_swapped == 0)); 
     set_status(context, status);
 
@@ -955,11 +983,11 @@ void instr_srl_r8     (cpu_context_t *context, uint8_t opcode)
 
     write_reg8(context, r8_code, res);
 
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_Z, (res == 0));
     
     /* Set carry if LSB is 1*/
-    status = CPU_STATUS_SET(status, 
+    status = CPU_STATUS_SETBIT(status, 
                         CPU_STATUS_MASK_C, (r8_val & 0x1));
 
     set_status(context, status);
@@ -987,9 +1015,9 @@ void instr_bit_b3_r8  (cpu_context_t *context, uint8_t opcode)
     res = bit_set ? 
             (reg_val | select_mask) : (reg_val & ~select_mask);
     
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_Z, (res == 0));
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_N, 0);
-    status = CPU_STATUS_SET(status, CPU_STATUS_MASK_H, 1);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (res == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_N, 0);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_H, 1);
 
     set_status(context, status);
     
