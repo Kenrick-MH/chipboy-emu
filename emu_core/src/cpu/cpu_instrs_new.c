@@ -1,5 +1,6 @@
 #include <cpu_instrs.h>
 #include <bus.h>
+#include <optable.h>
 
 /* ALU OP FLAGS */
 #define ALU_ADD         0x0
@@ -12,7 +13,7 @@
 #define ALU_CP          0x7
 
 /* Status flags */
-#define CPU_STATUS_MASK_Z    0x80
+#define     0x80
 #define CPU_STATUS_MASK_N    0x40
 #define CPU_STATUS_MASK_H    0x20
 #define CPU_STATUS_MASK_C    0x10
@@ -21,7 +22,7 @@
 #define CPU_STATUS_TEST(status_reg, status_mask) \
    ( ((status_reg) & (status_mask)) ? 1 : 0)    
 
-#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_Z) >> 7)) 
+#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & ) >> 7)) 
 #define CPU_STATUS_N_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_N) >> 6))
 #define CPU_STATUS_H_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_H) >> 5))
 #define CPU_STATUS_C_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_C) >> 4))
@@ -237,7 +238,7 @@ static void alu_op8(cpu_context_t *context,
         Common case:
         -  Z flag is set when result (accumulator) is zero. 
     */
-    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_MASK_Z;
+    if ((accumulator & 0xff) == 0) flags |= ;
     set_status(context, flags);
 
     if (alu8_opcode != ALU_CP)  
@@ -287,7 +288,7 @@ static void rr_r8(cpu_context_t *context, uint8_t r8_code)
 
     /* Set zero flag */
     /* Weird behaviour, need to zero out the Z flag if register is A*/
-    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (new_val == 0));
+    status = CPU_STATUS_SETBIT(status, , (new_val == 0));
  
     write_reg8(context, r8_code, new_val);
     set_status(context, status);    
@@ -314,7 +315,7 @@ static void rl_r8(cpu_context_t *context, uint8_t r8_code)
 
     /* Set Z flag if zero */
     /* Weird behaviour, need to zero out the Z flag if register is A*/
-    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (new_val == 0));
+    status = CPU_STATUS_SETBIT(status, , (new_val == 0));
 
     set_status(context, status);
     write_reg8(context, r8_code, new_val);
@@ -777,7 +778,14 @@ void instr_push_r16stk      (cpu_context_t *context, uint8_t opcode)
     context->cycles += 4;
 }
 
-void instr_cb_prefix        (cpu_context_t *context, uint8_t opcode);
+void instr_cb_prefix        (cpu_context_t *context, uint8_t opcode)
+{
+    assert(opcode == 0xcbu);
+    uint8_t next_opcode = read_imm8(context);
+    INSTR_FUNC opfunc = prefix_optable[next_opcode];
+
+    opfunc(context, opcode);
+}
 
 void instr_ldh_cmem_a       (cpu_context_t *context, uint8_t opcode)
 {
