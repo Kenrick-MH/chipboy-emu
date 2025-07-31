@@ -13,7 +13,7 @@
 #define ALU_CP          0x7
 
 /* Status flags */
-#define     0x80
+#define CPU_STATUS_MASK_Z    0x80
 #define CPU_STATUS_MASK_N    0x40
 #define CPU_STATUS_MASK_H    0x20
 #define CPU_STATUS_MASK_C    0x10
@@ -22,7 +22,7 @@
 #define CPU_STATUS_TEST(status_reg, status_mask) \
    ( ((status_reg) & (status_mask)) ? 1 : 0)    
 
-#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & ) >> 7)) 
+#define CPU_STATUS_Z_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_Z) >> 7)) 
 #define CPU_STATUS_N_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_N) >> 6))
 #define CPU_STATUS_H_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_H) >> 5))
 #define CPU_STATUS_C_TEST(status_reg)   ((((status_reg) & CPU_STATUS_MASK_C) >> 4))
@@ -238,7 +238,7 @@ static void alu_op8(cpu_context_t *context,
         Common case:
         -  Z flag is set when result (accumulator) is zero. 
     */
-    if ((accumulator & 0xff) == 0) flags |= ;
+    if ((accumulator & 0xff) == 0) flags |= CPU_STATUS_MASK_Z;
     set_status(context, flags);
 
     if (alu8_opcode != ALU_CP)  
@@ -288,7 +288,7 @@ static void rr_r8(cpu_context_t *context, uint8_t r8_code)
 
     /* Set zero flag */
     /* Weird behaviour, need to zero out the Z flag if register is A*/
-    status = CPU_STATUS_SETBIT(status, , (new_val == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (new_val == 0));
  
     write_reg8(context, r8_code, new_val);
     set_status(context, status);    
@@ -315,7 +315,7 @@ static void rl_r8(cpu_context_t *context, uint8_t r8_code)
 
     /* Set Z flag if zero */
     /* Weird behaviour, need to zero out the Z flag if register is A*/
-    status = CPU_STATUS_SETBIT(status, , (new_val == 0));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, (new_val == 0));
 
     set_status(context, status);
     write_reg8(context, r8_code, new_val);
