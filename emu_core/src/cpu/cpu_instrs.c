@@ -33,12 +33,20 @@
  ( (value) ? ((status_reg) & ~(status_code)) : ((status_reg) | (status_code)))
 
 // Carry (Addition) calculations
-#define CHECK_CARRY(a, b)         (((uint16_t)(a) + (uint16_t)(b)) > 0xFF)
-#define CHECK_HALF_CARRY(a, b)    ((((a) & 0x0F) + ((b) & 0x0F)) > 0x0F)
+#define CHECK_CARRY8(a, b)         (((uint16_t)(a) + (uint16_t)(b)) > 0xFF)
+#define CHECK_HALF_CARRY8(a, b)    ((((a) & 0x0F) + ((b) & 0x0F)) > 0x0F)
 
-// Borrow calculations
-#define CHECK_BORROW(a, b)        ((uint16_t)(a) < (uint16_t)(b))
-#define CHECK_HALF_BORROW(a, b)   (((a & 0x0F) < (b & 0x0F)))
+// 16-bit Carry calculations
+#define CHECK_CARRY16(a, b)        (((uint32_t)(a) + (uint32_t)(b)) > 0xFFFF)
+#define CHECK_HALF_CARRY16(a, b)   ((((a) & 0x0FFF) + ((b) & 0x0FFF)) > 0x0FFF)
+
+// 8-bit Borrow calculations
+#define CHECK_BORROW8(a, b)        ((uint16_t)(a) < (uint16_t)(b))
+#define CHECK_HALF_BORROW8(a, b)   (((a & 0x0F) < (b & 0x0F)))
+
+// 16-bit Borrow calculations
+#define CHECK_BORROW16(a, b)       ((uint32_t)(a) < (uint32_t)(b))
+#define CHECK_HALF_BORROW16(a, b)  (((a & 0x0FFF) < (b & 0x0FFF)))
 
 #define COND_NZ         0x0
 #define COND_Z          0x1
@@ -69,6 +77,13 @@
 #define R16_SP          0x3
 #define R16_PC          0x4
 #define R16_AF          0x5
+
+/* 16-bit Register Memory Access Mapping*/
+#define R16MEM_BC       0x0
+#define R16MEM_DE       0x1
+#define R16MEM_HLI      0x2
+#define R16MEM_HLD      0x3
+#define R16MEM_SP      0x4      
 
 /* 16-bit Registers for stack instructions */
 #define R16STK_BC       0x0
@@ -180,6 +195,79 @@ static void write_reg16(cpu_context_t *context, uint8_t r16_code, uint16_t val)
     }
 }
 
+/**
+ *  Write to memory address pointed by 16 bit register
+ */
+static void write_reg16mem(cpu_context_t *context, uint8_t r16mem_code, uint8_t wrdata)
+{
+    switch(r16mem_code)
+    {
+        case R16MEM_BC: bus_write(context->bc.full, wrdata); break;
+        case R16MEM_DE: bus_write(context->de.full, wrdata); break;
+        case R16MEM_HLI: bus_write(context->hl.full++, wrdata); break;
+        case R16MEM_HLD: bus_write(context->hl.full--, wrdata); break;
+
+        default:
+            /* UH-OH, invalid value! */
+            assert(false);
+            break;
+    }
+}
+
+
+/**
+ *  Read memory address pointed by 16 bit register
+ *  Returns read data
+ */
+static uint8_t read_reg16mem(cpu_context_t *context, uint8_t r16mem_code)
+{
+    switch(r16mem_code)
+    {
+        case R16MEM_BC: return bus_read(context->bc.full); break;
+        case R16MEM_DE: return bus_read(context->de.full); break;
+        case R16MEM_HLI: return bus_read(context->hl.full++); break;
+        case R16MEM_HLD: return bus_read(context->hl.full--); break;
+
+        default:
+            /* UH-OH, invalid value! */
+            assert(false);
+            break;
+    }
+
+    /* Dummy return value */
+    return 0;
+
+}
+
+
+/**
+ *  Add SP to a signed value.
+ *  Writes to SP, and modifies status bits.
+ */
+static void signed_add_sp(cpu_context_t *context, int8_t imm8)
+{
+    uint8_t abs_val;
+    uint8_t status = read_status(context);
+
+    if (imm8 >= 0) {
+        abs_val = (uint8_t) imm8;
+        status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, CHECK_CARRY8(context->sp, abs_val));
+        status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_H, CHECK_HALF_CARRY8(context->sp, abs_val));
+        context->sp += abs_val;
+    } else {
+        abs_val = (uint8_t) (-imm8);
+        status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, CHECK_BORROW8(context->sp, abs_val));
+        status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_H, CHECK_HALF_BORROW8(context->sp, abs_val));
+        context->sp -= abs_val;
+    }
+
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_Z, 0);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_H, 0);
+}
+
+
+
+
 static uint8_t read_status(cpu_context_t *context)
 { 
     return context->af.lo; 
@@ -208,8 +296,8 @@ static void alu_op8(cpu_context_t *context,
         case ALU_ADD    :
         case ALU_ADDC   : 
             wide_operand += (alu8_opcode == ALU_ADDC) ? CPU_STATUS_C_TEST(prev_flags) : 0;
-            if (CHECK_CARRY(accumulator, wide_operand))       flags |= CPU_STATUS_MASK_C;
-            if (CHECK_HALF_CARRY(accumulator, wide_operand))  flags |= CPU_STATUS_MASK_H;
+            if (CHECK_CARRY8(accumulator, wide_operand))       flags |= CPU_STATUS_MASK_C;
+            if (CHECK_HALF_CARRY8(accumulator, wide_operand))  flags |= CPU_STATUS_MASK_H;
             accumulator += wide_operand; 
             break;
 
@@ -217,8 +305,8 @@ static void alu_op8(cpu_context_t *context,
         case ALU_SUBC   :
         case ALU_CP     : 
             wide_operand -= (alu8_opcode == ALU_SUBC) ? CPU_STATUS_C_TEST(prev_flags) : 0;
-            if (CHECK_BORROW(accumulator, wide_operand))       flags |= CPU_STATUS_MASK_C;
-            if (CHECK_HALF_BORROW(accumulator, wide_operand))  flags |= CPU_STATUS_MASK_H;
+            if (CHECK_BORROW8(accumulator, wide_operand))       flags |= CPU_STATUS_MASK_C;
+            if (CHECK_HALF_BORROW8(accumulator, wide_operand))  flags |= CPU_STATUS_MASK_H;
             flags |= CPU_STATUS_MASK_N;
             accumulator -= wide_operand; break;
             
@@ -384,11 +472,22 @@ void instr_ld_r16_imm16     (cpu_context_t *context, uint8_t opcode)
     context->cycles += 4;
 }
 
-void instr_ld_r16mem_a      (cpu_context_t *context, uint8_t opcode){
+void instr_ld_r16mem_a      (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r16mem_code = (opcode >> 4) & 0x3;
+    uint8_t wrdata = read_reg8(context, R8_A);
+    write_reg16mem(context, r16mem_code, wrdata);
     
+    context->cycles += 2;
 }
 
-void instr_ld_a_r16mem      (cpu_context_t *context, uint8_t opcode);
+void instr_ld_a_r16mem      (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t r16mem_code = (opcode >> 4) & 0x3;
+    uint8_t rdata = read_reg16mem(context, r16mem_code);
+    write_reg8(context, R8_A, rdata);
+    context->cycles += 2;
+}
 
 void instr_ld_imm16mem_sp   (cpu_context_t *context, uint8_t opcode)
 {
@@ -401,7 +500,23 @@ void instr_ld_imm16mem_sp   (cpu_context_t *context, uint8_t opcode)
     context->cycles += 5;
 }
 
-void instr_add_hl_r16       (cpu_context_t *context, uint8_t opcode);
+void instr_add_hl_r16       (cpu_context_t *context, uint8_t opcode)
+{
+    uint8_t status = read_status(context);
+    uint8_t r16_code = ((opcode >> 4) & 0x3u);
+
+    assert(r16_code < 0x4u);
+
+    uint16_t r16_val = read_reg16(context, r16_code);
+    uint16_t hl_val = read_reg16(context, R16_HL);
+    
+    context->hl.full += r16_val;
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_N, 0);
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_H, CHECK_HALF_CARRY16(hl_val, r16_val));
+    status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_C, CHECK_CARRY16(hl_val, r16_val));
+
+    context->cycles += 2;
+}
 
 void instr_inc_r16          (cpu_context_t *context, uint8_t opcode)
 {
@@ -837,8 +952,22 @@ void instr_ld_a_imm16mem    (cpu_context_t *context, uint8_t opcode)
     context->cycles += 4;
 }
 
-void instr_add_sp_imm8      (cpu_context_t *context, uint8_t opcode);
-void instr_ld_hl_sp_imm8    (cpu_context_t *context, uint8_t opcode);
+void instr_add_sp_imm8      (cpu_context_t *context, uint8_t opcode)
+{
+    int8_t imm8 = (int8_t) read_imm8(context);
+    signed_add_sp(context, imm8);
+    context->cycles += 4;
+}
+
+
+void instr_ld_hl_sp_imm8    (cpu_context_t *context, uint8_t opcode)
+{
+    int8_t imm8 = (int8_t) read_imm8(context);
+    signed_add_sp(context, imm8);
+    context->hl.full = context->sp;
+    context->cycles += 3;
+}
+
 void instr_ld_sp_hl         (cpu_context_t *context, uint8_t opcode)
 {   
     (void) opcode;
