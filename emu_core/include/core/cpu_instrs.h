@@ -3,7 +3,7 @@
 /**
  *  MACROS FOR INSTRUCTIONS
  */
-typedef void (*INSTR_FUNC)(cpu_context_t *, uint8_t);
+typedef void (*INSTR_FUNC)(cpu_context_t * context, uint8_t opcode);
 
 /** 
  *  Instructions for the CPU. 

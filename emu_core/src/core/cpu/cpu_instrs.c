@@ -265,9 +265,6 @@ static void signed_add_sp(cpu_context_t *context, int8_t imm8)
     status = CPU_STATUS_SETBIT(status, CPU_STATUS_MASK_H, 0);
 }
 
-
-
-
 static uint8_t read_status(cpu_context_t *context)
 { 
     return context->af.lo; 

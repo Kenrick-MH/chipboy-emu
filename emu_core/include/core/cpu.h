@@ -55,7 +55,7 @@ typedef struct cpu_context {
     /* 
         Interrupt enable flag. 
     */
-    uint8_t ie;
+    uint8_t ime;
 
 } cpu_context_t;
 
