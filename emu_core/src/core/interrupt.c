@@ -7,7 +7,7 @@ typedef struct interrupt_context {
 
 static interrupt_context_t interrupt_context;
 
-void set_interrupt_flag(interrupt_type_t interrupt_type)
+void interrupt_set_flag(interrupt_type_t interrupt_type)
 {
     switch (interrupt_type)
     {
@@ -32,7 +32,7 @@ void set_interrupt_flag(interrupt_type_t interrupt_type)
     }    
 }
 
-void clear_interrupt_flag(interrupt_type_t interrupt_type)
+void interrupt_clear_flag(interrupt_type_t interrupt_type)
 {
     switch (interrupt_type)
     {
@@ -62,7 +62,7 @@ void clear_interrupt_flag(interrupt_type_t interrupt_type)
  *  The top priority interrupt is the enabled interrupt that has
  *  the lowest bit position
  */
-interrupt_type_t get_top_interrupt(uint8_t ime)
+interrupt_type_t interrupt_get_top(uint8_t ime)
 {
     uint8_t interrupt_vals = ime ? (interrupt_context.ie_reg & interrupt_context.if_reg) : 0;
     
@@ -79,7 +79,7 @@ interrupt_type_t get_top_interrupt(uint8_t ime)
  *  Gets the interrupt vector corresponding to the interrupt type.
  *  Interrupt types can only be of VBLANK, STAT, TIMER, SERIAL or JOYPAD
  */
-addr_t get_interrupt_vector(interrupt_type_t interrupt_type)
+addr_t interrupt_get_vector_addr(interrupt_type_t interrupt_type)
 {
     return interrupt_vector_addrs[interrupt_type];
 }

@@ -819,8 +819,8 @@ void instr_call_cond_imm16  (cpu_context_t *context, uint8_t opcode){
     }
     
     /* Push PC on stack */
-    bus_write(context->sp--, REGHIGH(context->pc));
-    bus_write(context->sp--, REGLOW(context->pc));
+    bus_write(--context->sp, REGHIGH(context->pc));
+    bus_write(--context->sp, REGLOW(context->pc));
 
     context->pc = label;
     context->cycles += 6;
@@ -830,8 +830,8 @@ void instr_call_imm16       (cpu_context_t *context, uint8_t opcode){
     addr_t label = read_imm16(context);
 
     /* Push PC to stack */
-    bus_write(context->sp--, REGHIGH(context->pc));
-    bus_write(context->sp--, REGLOW(context->pc));
+    bus_write(--context->sp, REGHIGH(context->pc));
+    bus_write(--context->sp, REGLOW(context->pc));
 
     context->pc = label;
     context->cycles += 6;
@@ -885,8 +885,8 @@ void instr_push_r16stk      (cpu_context_t *context, uint8_t opcode)
     */
 
     /* Write HIGH part */
-    bus_write(context->sp--, REGHIGH(reg_data));
-    bus_write(context->sp--, REGLOW(reg_data));
+    bus_write(--context->sp, REGHIGH(reg_data));
+    bus_write(--context->sp, REGLOW(reg_data));
     context->cycles += 4;
 }
 

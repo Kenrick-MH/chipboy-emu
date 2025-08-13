@@ -33,27 +33,27 @@ addr_t interrupt_vector_addrs[INTERRUPT_TYPE_COUNT] = {
  *  Called by devices (PPU, Timer, Serial Comm, or Joypad)
  *  Sets the interrupt bit to HIGH for the interrrupt.
  */
-void set_interrupt_flag(interrupt_type_t interrupt_type);
+void interrupt_set_flag(interrupt_type_t interrupt_type);
 
 
 /**
  *  Called by devices (PPU, Timer, Serial Comm, or Joypad)
  *  Clears the interrupt bit to LOW for the interrrupt.
  */
-void clear_interrupt_flag(interrupt_type_t interrupt_type);
+void interrupt_clear_flag(interrupt_type_t interrupt_type);
 
 /**
  *  Get the top priority interrupt to service.
  *  The top priority interrupt is the enabled interrupt that has
  *  the lowest bit position
  */
-interrupt_type_t get_top_interrupt(uint8_t ime);
+interrupt_type_t interrupt_get_top(uint8_t ime);
 
 /**
  *  Gets the interrupt vector corresponding to the interrupt type.
  *  Interrupt types can only be of VBLANK, STAT, TIMER, SERIAL or JOYPAD
  */
-addr_t get_interrupt_vector(interrupt_type_t interrupt_type);
+addr_t interrupt_get_vector_addr(interrupt_type_t interrupt_type);
 
 
 #endif // INTERRUPT_H

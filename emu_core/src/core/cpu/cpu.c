@@ -30,27 +30,24 @@ void cpu_init()
 void cpu_tick()
 {
     /* TODO: Make CPU cycle accurate (have state machines) */
+    interrupt_type_t i_type;
+    i_type = interrupt_get_top(cpu_context.ime);
 
     /* Before executing any instructions, need to check for interrupts */
-    if (cpu_context.ime){
-        /* 
-            Get interrupt type, clear interrupt bit
-            If no interrupt then continue normal execution flow.    
-        */
-
-        /* Get interrupt vector */
+    if (i_type != INTERRUPT_TYPE_NONE){
+        interrupt_clear_flag(i_type);
+        cpu_context.ime = 0;
+        addr_t i_vector = interrupt_get_vector_addr(i_type);
 
         /* Two NOPS */
 
         /* LD [SP] PC (Two M-Cycles) */
+        bus_write(--cpu_context.sp, (uint8_t) (cpu_context.pc >> 0x8));
+        bus_write(--cpu_context.sp, (uint8_t) cpu_context.pc);
 
+        cpu_context.pc = i_vector;
+        cpu_context.cycles += 5;
     
-        // If there is an interrupt, service it.
-        cpu_context.ime = 0;
-
-        /* Go to the next cycle */
-
-        /* Effect takes place after 5-M cycles*/ 
         return;
     }
     
