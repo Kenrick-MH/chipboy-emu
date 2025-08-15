@@ -55,8 +55,11 @@ static error_code_t if_write(void *context, addr_t addr, uint8_t value)
  *  Initializes the interrupt module.
  */
 void interrupt_init() {
-    interrupt_context.ie_reg = 0x0;
-    interrupt_context.if_reg = 0x0;
+    /* Enable all interrupts initially */
+    interrupt_context.ie_reg = 0b00011111u;
+
+    /* IF is still 0, since this is reserved for device. */
+    interrupt_context.if_reg = 0x0u;
     interrupt_context.interrupt_ie_ms_conn = (master_slave_conn_t) {
         .start_addr = (addr_t) 0xFFFFu, 
         .end_addr = (addr_t) 0xFFFFu,   
