@@ -2,6 +2,7 @@
 #define INTERRUPT_H
 
 #include <common.h>
+#include <master_slave.h>
 
 #define INTERRUPT_REG_VBLANK_BITMASK      0x1
 #define INTERRUPT_REG_TIMER_BITMASK       0x2
@@ -30,6 +31,11 @@ addr_t interrupt_vector_addrs[INTERRUPT_TYPE_COUNT] = {
 };
 
 /**
+ *  Initializes the interrupt module.
+ */
+void interrupt_init();
+
+/**
  *  Called by devices (PPU, Timer, Serial Comm, or Joypad)
  *  Sets the interrupt bit to HIGH for the interrrupt.
  */
@@ -55,5 +61,14 @@ interrupt_type_t interrupt_get_top(uint8_t ime);
  */
 addr_t interrupt_get_vector_addr(interrupt_type_t interrupt_type);
 
+/**
+ *  Returns a master slave connection to the interrupt IE register.
+ */
+master_slave_conn_t *interrupt_get_ie_ms_connection();
+
+/**
+ *  Returns a master slave connection to the interrupt IF register.
+ */
+master_slave_conn_t *interrupt_get_if_ms_connection();
 
 #endif // INTERRUPT_H

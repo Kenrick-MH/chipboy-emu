@@ -972,7 +972,10 @@ void instr_ld_sp_hl         (cpu_context_t *context, uint8_t opcode)
     context->cycles += 2;
 }
 
-void instr_di               (cpu_context_t *context, uint8_t opcode);
+void instr_di               (cpu_context_t *context, uint8_t opcode)
+{
+     
+}
 void instr_ei               (cpu_context_t *context, uint8_t opcode);
 
 /**

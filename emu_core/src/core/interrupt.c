@@ -1,11 +1,78 @@
 #include <core/interrupt.h>
+#include <master_slave.h>
+#include <emu_error.h>
 
 typedef struct interrupt_context {
     uint8_t ie_reg;
     uint8_t if_reg;
+    master_slave_conn_t interrupt_ie_ms_conn;
+    master_slave_conn_t interrupt_if_ms_conn;
 } interrupt_context_t;
 
 static interrupt_context_t interrupt_context;
+/**  
+ *  Handle Interrupt Read/Write
+*/
+static error_code_t ie_read(void *context, addr_t addr, uint8_t *read_val)
+{
+    assert(addr == 0xFFFF);
+    assert(read_val != NULL);
+
+    interrupt_context_t *int_ctx = (interrupt_context_t *) context;
+    *read_val = int_ctx->ie_reg;  
+    return STATUS_OK;
+}
+
+static error_code_t ie_write(void *context, addr_t addr, uint8_t value)
+{
+    assert(addr == 0xFFFF);
+    interrupt_context_t *int_ctx = (interrupt_context_t *) context;
+    int_ctx->ie_reg = value;  
+    return STATUS_OK;
+}
+
+
+static error_code_t if_read(void *context, addr_t addr, uint8_t *read_val)
+{
+    assert(addr == 0xFF0F);
+    assert(read_val != NULL);
+
+    interrupt_context_t *int_ctx = (interrupt_context_t *) context;
+    *read_val = int_ctx->if_reg;  
+    return STATUS_OK;
+}
+
+static error_code_t if_write(void *context, addr_t addr, uint8_t value)
+{
+    assert(addr == 0xFF0F);
+    interrupt_context_t *int_ctx = (interrupt_context_t *) context;
+    int_ctx->if_reg = value;  
+    return STATUS_OK;
+}
+
+
+/**
+ *  Initializes the interrupt module.
+ */
+void interrupt_init() {
+    interrupt_context.ie_reg = 0x0;
+    interrupt_context.if_reg = 0x0;
+    interrupt_context.interrupt_ie_ms_conn = (master_slave_conn_t) {
+        .start_addr = (addr_t) 0xFFFFu, 
+        .end_addr = (addr_t) 0xFFFFu,   
+        .slave_context = (void *) &interrupt_context,
+        .slave_read = ie_read,
+        .slave_write = ie_write
+    };
+
+    interrupt_context.interrupt_if_ms_conn = (master_slave_conn_t) {
+        .start_addr = (addr_t) 0xFF0Fu, 
+        .end_addr = (addr_t) 0xFF0Fu,   
+        .slave_context = (void *) &interrupt_context,
+        .slave_read = if_read,
+        .slave_write = if_write
+    };
+}
 
 void interrupt_set_flag(interrupt_type_t interrupt_type)
 {
@@ -82,4 +149,25 @@ interrupt_type_t interrupt_get_top(uint8_t ime)
 addr_t interrupt_get_vector_addr(interrupt_type_t interrupt_type)
 {
     return interrupt_vector_addrs[interrupt_type];
+}
+
+master_slave_conn_t *interrupt_get_ie_ms_connection()
+{
+    master_slave_conn_t *res = &(interrupt_context.interrupt_ie_ms_conn);
+    assert(res->slave_context != NULL);
+    assert(res->slave_read != NULL);
+    assert(res->slave_write != NULL);
+
+    return res;
+}
+
+
+master_slave_conn_t *interrupt_get_if_ms_connection()
+{
+    master_slave_conn_t *res = &(interrupt_context.interrupt_if_ms_conn);
+    assert(res->slave_context != NULL);
+    assert(res->slave_read != NULL);
+    assert(res->slave_write != NULL);
+
+    return res;
 }
