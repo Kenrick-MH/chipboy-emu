@@ -164,7 +164,6 @@ master_slave_conn_t *interrupt_get_ie_ms_connection()
     return res;
 }
 
-
 master_slave_conn_t *interrupt_get_if_ms_connection()
 {
     master_slave_conn_t *res = &(interrupt_context.interrupt_if_ms_conn);
