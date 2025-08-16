@@ -32,7 +32,7 @@ typedef struct emulator {
     void *input_buf_ptr; 
     
 
-} emulator_ctx_t
+} emulator_ctx_t;
 
 
 /*  

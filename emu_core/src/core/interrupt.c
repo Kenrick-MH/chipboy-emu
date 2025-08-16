@@ -10,8 +10,9 @@ typedef struct interrupt_context {
 } interrupt_context_t;
 
 static interrupt_context_t interrupt_context;
+
 /**  
- *  Handle Interrupt Read/Write
+ *  Function callbacks for interrupt register bus connections.
 */
 static error_code_t ie_read(void *context, addr_t addr, uint8_t *read_val)
 {

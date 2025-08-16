@@ -6,12 +6,17 @@
 
 typedef struct device_event_t {
     uint64_t timestamp; 
-    void (* exec_event)();
+    error_code_t(* exec_event)();
 } device_event_t;
 
 device_event_t event_queue[MAX_DEVICE_NUMBER];
 
 error_code_t execute_next_event();
-error_code_t schedule_next_event();
+
+
+/**
+ *  Schedules the next event in the event queue
+ */
+void schedule_next_event(device_event_t event);
 
 #endif // SCHEDULE_H
