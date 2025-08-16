@@ -21,7 +21,7 @@ static inline bool type##_spqueue_is_empty(type##_spqueue_t *heap) {            
     return (heap->len == 0);                                                          \
 }                                                                                     \
 static inline bool type##_spqueue_is_full(type##_spqueue_t *heap) {                 \
-    return (heap->len == heap->max_len);                                              \
+    return heap->len == heap->max_len;                                              \
 }                                                                                     \
                                                                                       \
 static inline void type##_spqueue_push(type##_spqueue_t *heap, type element) {      \

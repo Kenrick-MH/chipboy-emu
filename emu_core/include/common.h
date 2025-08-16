@@ -39,7 +39,7 @@ typedef uint64_t t_cycle_t;
     Common macro defs here
 */
 #define MAX_DEVICE_NUMBER 20
-
+#define MAX_EVENT_QUEUE_LEN 40
 
 
 
