@@ -7,130 +7,105 @@
 #include <emu_error.h>
 #include <platform/error_handling.h>
 
-typedef int type;
-typedef struct sminheap
-{
-    const size_t max_len;
-    size_t len;
-    bool (*comparator)(type e1, type e2);
-    type *data;
-} type_sminheap_t;
-
-typedef struct sminheap_res
-{
-    const type result;
-    const error_code_t status;    
-} type_sminheap_res_t;
-
-bool type_sminheap_is_empty(type_sminheap_t *heap) {return (heap->len == 0);}
-bool type_sminheap_is_full(type_sminheap_t *heap) {return (heap->len == heap->max_len);}
-
-void type_sminheap_push(type_sminheap_t *heap, type element)
-{
-    if (heap->len == heap->max_len){
-        // die from too full, or return an error.
-    }
-
-    heap->data[heap->len++] = element;
-
-    /* Early return when heap is initially empty */
-    if (heap->len == 1){ return; }
-
-    /* Heapify Up the heap */
-    int curr_idx = heap->len - 1;
-    int par_idx = (curr_idx - 1)/2;
-    
-    while (par_idx != -1 && heap->comparator(heap->data[par_idx], heap->data[curr_idx])){
-        /* Swap if invariant is broken. */
-        type temp = heap->data[par_idx];
-        heap->data[par_idx] = heap->data[curr_idx];
-        heap->data[curr_idx] = temp;
-        curr_idx = par_idx;
-        par_idx = (curr_idx - 1)/2;
-    }
+#define DECL_STATIC_PQUEUE_TYPE(type)                                                \
+typedef bool (* type##_comparator_t)(type e1, type e2);                              \
+typedef struct type##_spqueue {                                                      \
+    const size_t max_len;                                                             \
+    size_t len;                                                                       \
+    /* Returns TRUE if e1 < e2, and makes heap a max-heap */                          \
+    const type##_comparator_t comparator;                                             \
+    type *const data;                                                                 \
+} type##_spqueue_t;                                                                  \
+                                                                                      \
+static inline bool type##_spqueue_is_empty(type##_spqueue_t *heap) {                \
+    return (heap->len == 0);                                                          \
+}                                                                                     \
+static inline bool type##_spqueue_is_full(type##_spqueue_t *heap) {                 \
+    return (heap->len == heap->max_len);                                              \
+}                                                                                     \
+                                                                                      \
+static inline void type##_spqueue_push(type##_spqueue_t *heap, type element) {      \
+    if (heap->len == heap->max_len) {                                                 \
+        emu_die(STATUS_FULL_CONTAINER, "Pushing when container is full.");            \
+    }                                                                                 \
+    heap->data[heap->len++] = element;                                                \
+    /* Early return when heap is initially empty */                                   \
+    if (heap->len == 1) { return; }                                                   \
+    /* Heapify Up the heap */                                                         \
+    int curr_idx = heap->len - 1;                                                     \
+    int par_idx = (curr_idx - 1)/2;                                                   \
+    /* Comparator returns TRUE if e1 < e2 by default (max-heap), so swap when par < curr_idx */ \
+    while (curr_idx > 0 && heap->comparator(heap->data[curr_idx], heap->data[par_idx])) { \
+        /* Swap if invariant is broken. */                                            \
+        type temp = heap->data[par_idx];                                              \
+        heap->data[par_idx] = heap->data[curr_idx];                                   \
+        heap->data[curr_idx] = temp;                                                  \
+        curr_idx = par_idx;                                                           \
+        par_idx = (curr_idx - 1)/2;                                                   \
+    }                                                                                 \
+}                                                                                     \
+                                                                                      \
+static inline type type##_spqueue_front(type##_spqueue_t *heap) {                   \
+    if (heap->len == 0) {                                                             \
+        emu_die(STATUS_EMPTY_CONTAINER, "Container is empty!");                       \
+    }                                                                                 \
+    return heap->data[0];                                                             \
+}                                                                                     \
+                                                                                      \
+static inline int type##_pick_priority(type##_spqueue_t *heap, int root_idx) {       \
+    int left_idx = (root_idx << 1) + 1;                                               \
+    int right_idx = left_idx + 1;                                                     \
+    type priority_val = heap->data[root_idx];                                         \
+    int priority_idx = root_idx;                                                      \
+    /* Trigger when priority_val < left */                                            \
+    if (left_idx < heap->len && heap->comparator(priority_val, heap->data[left_idx])) { \
+        priority_val = heap->data[left_idx];                                          \
+        priority_idx = left_idx;                                                      \
+    }                                                                                 \
+    /* Trigger when priority_val < right */                                           \
+    if (right_idx < heap->len && heap->comparator(priority_val, heap->data[right_idx])) { \
+        priority_val = heap->data[right_idx];                                         \
+        priority_idx = right_idx;                                                     \
+    }                                                                                 \
+    return priority_idx;                                                              \
+}                                                                                     \
+                                                                                      \
+static inline type type##_spqueue_pop(type##_spqueue_t *heap) {                     \
+    if (heap->len == 0) {                                                             \
+        emu_die(STATUS_EMPTY_CONTAINER, "Popped container that is empty!");           \
+    }                                                                                 \
+    type front = heap->data[0];                                                       \
+    if (heap->len == 1) {                                                             \
+        --heap->len;                                                                  \
+        return front;                                                                 \
+    }                                                                                 \
+    type last = heap->data[--heap->len];                                              \
+    heap->data[0] = last;                                                             \
+    /* Heapify down the heap */                                                       \
+    int curr_idx = 0;                                                                 \
+    int priority_idx = type##_pick_priority(heap, curr_idx);                          \
+    while (priority_idx != curr_idx) {                                                \
+        type temp = heap->data[priority_idx];                                         \
+        heap->data[priority_idx] = heap->data[curr_idx];                              \
+        heap->data[curr_idx] = temp;                                                  \
+        curr_idx = priority_idx;                                                      \
+        priority_idx = type##_pick_priority(heap, curr_idx);                          \
+    }                                                                                 \
+    return front;                                                                     \
+}                                                                                     \  
+                                                                                    \
+static inline type##_spqueue_t type##_spqueue_create(                   \
+    size_t max_size,                                                    \
+    type *data,                                                         \
+    type##_comparator_t comp                                            \
+) {                                                                     \
+    return (type##_spqueue_t){                                          \
+        .max_len = max_size,                                            \
+        .len = 0,                                                       \
+        .comparator = comp,                                             \
+        .data = data                                                    \
+    };                                                                  \
 }
-
-type type_sminheap_front(type_sminheap_t *heap)
-{
-    if (heap->len == 0){
-        emu_die(STATUS_EMPTY_CONTAINER, "Container is empty!");  
-    }
-
-    return heap->data[0];
-}
-
-static inline int pick_priority(type_sminheap_t *heap, int root_idx){
-    int left_idx = (root_idx << 2) + 1;
-    int right_idx = left_idx + 1;
-    type priority_val = heap->data[root_idx];
-    int priority_idx = root_idx;
-
-    if (left_idx < heap->len && heap->comparator(priority_val, heap->data[left_idx])){
-            priority_val = heap->data[left_idx];
-            priority_idx = left_idx;
-        }
-
-        if (right_idx < heap->len && heap->comparator(priority_val, heap->data[right_idx])){
-            priority_val = heap->data[right_idx];
-            priority_idx = right_idx;
-        }
-
-    return priority_idx;
-} 
-
-type type_sminheap_pop(type_sminheap_t *heap)
-{
-    if (heap->len == 0){
-        emu_die(STATUS_EMPTY_CONTAINER, "Popped container that is empty!");
-    }
-
-    type front = heap->data[0];
-    if (heap->len == 1){
-        --heap->len;
-        return front;
-    }
-
-    type last = heap->data[--heap->len];
-    heap->data[0] = last;
-    
-    /* Heapify down the heap */ 
-    int curr_idx = 0;
-    int priority_idx = pick_priority(heap, curr_idx);
-    while (priority_idx != curr_idx){
-        type temp = heap->data[priority_idx];
-        heap->data[priority_idx] = heap->data[curr_idx];
-        heap->data[curr_idx] = temp;
-
-        curr_idx = priority_idx;
-        priority_idx = pick_priority(heap, curr_idx);
-    }
-
-    return front;
-}
-
-
-
-#define DECL_STATIC_HEAP(type) \
-    typedef struct {                        \
-        const size_t max_len;                     \
-        size_t len;                         \
-        type *data;                         \
-    } type##_sminheap_t               \   
-                                            \
-    bool type##_sminheap_is_empty(type##_sminheap_t *heap) { return heap-> }\ 
-                                            \
-                                            \
-                                            \
-                                            \ 
-                                            \
-
-#define STATIC_HEAP_CREATE(container_name, type, max_size) \ 
-    type container_name##_buf [max_size]; \                                                                                      
-    type##_sminheap_t container_name = (type##_sminheap_t) { \                                                      
-        .max_len = max_size,                                             \      
-        .len     = 0,                                                    \
-        .data    = container_name##_buf                                  \                 
-    };
 
 #endif // STATIC_HEAP_H
 

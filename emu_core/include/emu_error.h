@@ -6,6 +6,7 @@ typedef enum error_code {
     STATUS_BUS_ERROR,
     STATUS_SEG_FAULT,
     STATUS_EMPTY_CONTAINER,
+    STATUS_FULL_CONTAINER,
 } error_code_t;
 
 
