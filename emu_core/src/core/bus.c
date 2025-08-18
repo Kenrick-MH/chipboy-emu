@@ -1,5 +1,6 @@
 
 #include <common.h>
+#include <error_handling.h>
 #include <core/interrupt.h>
 #include <platform/memory.h>
 #include <bus.h>
@@ -20,7 +21,7 @@ static master_slave_conn_t *find_peripheral(addr_t addr)
     }
 
     /* Should never happen */
-    return NULL;
+    emu_die(STATUS_BUS_ERROR, "Accessing unmapped/illegal address");
 }
 
 
@@ -49,17 +50,11 @@ void bus_init()
         - error status
         - `read_result (uint8_t)`:  Read result from bus 
 */
-int bus_read(addr_t addr, uint8_t *read_result)
+uint8_t bus_read(addr_t addr)
 {
     error_code_t error_code;
     master_slave_conn_t *periph_conn = find_peripheral(addr);
-    
-    /* SEGFAULT */
-    if (periph_conn == NULL){
-        return -1;
-    }
-
-    return msconn_master_read(periph_conn, addr, read_result);
+    return msconn_master_read(periph_conn, addr);
 }
 
 /*
@@ -67,13 +62,8 @@ int bus_read(addr_t addr, uint8_t *read_result)
     Returns:
         - error status
 */
-int bus_write(addr_t addr, uint8_t value)
+void bus_write(addr_t addr, uint8_t value)
 {
     master_slave_conn_t *periph_conn = find_peripheral(addr);
-    /* SEGFAULT */
-    if (periph_conn == NULL){
-        return -1;
-    }
-
-    return msconn_master_write(periph_conn, addr, value);
+    msconn_master_write(periph_conn, addr, value);
 }

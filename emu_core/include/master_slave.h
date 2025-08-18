@@ -27,8 +27,8 @@ typedef struct master_slave_conn
         Slave implemented functions, uses adress offset from the slave's base pointer.
         Slaves register both the context and the function to serve the context.
     */
-    error_code_t (*slave_read)(void *context, addr_t addr, uint8_t *read_val);
-    error_code_t (*slave_write)(void *context, addr_t addr, uint8_t value);
+    uint8_t (*slave_read)(void *context, addr_t addr);
+    void (*slave_write)(void *context, addr_t addr, uint8_t value);
 
 } master_slave_conn_t;
 
@@ -39,14 +39,14 @@ typedef struct master_slave_conn
  *  and also writes `read_val` to contain the
  *  read byte.
  */
-error_code_t msconn_master_read(master_slave_conn_t *conn, addr_t addr, uint8_t *read_val);
+uint8_t msconn_master_read(master_slave_conn_t *conn, addr_t addr);
 
 /**
  *  Master's interface to write to a slave.
  *  
  *  Returns the error code of the write operation.
  */
-error_code_t msconn_master_write(master_slave_conn_t *conn, addr_t addr, uint8_t value);
+void msconn_master_write(master_slave_conn_t *conn, addr_t addr, uint8_t value);
 
 #endif // MASTER_SLAVE_H
 

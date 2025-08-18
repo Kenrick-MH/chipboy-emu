@@ -14,41 +14,35 @@ static interrupt_context_t interrupt_context;
 /**  
  *  Function callbacks for interrupt register bus connections.
 */
-static error_code_t ie_read(void *context, addr_t addr, uint8_t *read_val)
+static uint8_t ie_read(void *context, addr_t addr)
 {
     assert(addr == 0xFFFF);
-    assert(read_val != NULL);
 
     interrupt_context_t *int_ctx = (interrupt_context_t *) context;
-    *read_val = int_ctx->ie_reg;  
-    return STATUS_OK;
+    return int_ctx->ie_reg;
 }
 
-static error_code_t ie_write(void *context, addr_t addr, uint8_t value)
+static void ie_write(void *context, addr_t addr, uint8_t value)
 {
     assert(addr == 0xFFFF);
     interrupt_context_t *int_ctx = (interrupt_context_t *) context;
     int_ctx->ie_reg = value;  
-    return STATUS_OK;
 }
 
 
-static error_code_t if_read(void *context, addr_t addr, uint8_t *read_val)
+static uint8_t if_read(void *context, addr_t addr)
 {
     assert(addr == 0xFF0F);
-    assert(read_val != NULL);
 
     interrupt_context_t *int_ctx = (interrupt_context_t *) context;
-    *read_val = int_ctx->if_reg;  
-    return STATUS_OK;
+    return int_ctx->ie_reg;
 }
 
-static error_code_t if_write(void *context, addr_t addr, uint8_t value)
+static void if_write(void *context, addr_t addr, uint8_t value)
 {
     assert(addr == 0xFF0F);
     interrupt_context_t *int_ctx = (interrupt_context_t *) context;
     int_ctx->if_reg = value;  
-    return STATUS_OK;
 }
 
 
