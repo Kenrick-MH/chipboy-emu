@@ -1,4 +1,6 @@
-#include<utils/static_heap.h>
+#include <utils/static_pqueue.h>
+
+typedef _Bool (* int_spqueue_comparator_fn)(int e1, int e2); 
 
 DECL_STATIC_PQUEUE_TYPE(int);
 
@@ -23,9 +25,11 @@ static bool twople_comparator(twople e1, twople e2){
 
 int main(){
     int int_buf[20];
-    int_spqueue_t my_pq = int_spqueue_create(20, int_buf, comparator);
+    static_pqueue(int) my_pq = static_pqueue_create(int)(20, int_buf, comparator);
 
-
+    my_pq.mts->push(&my_pq, 0);
+    my_pq.mts->push(&my_pq, 1);
+    my_pq.mts->push(&my_pq, 4);
     // int_spqueue_push(&my_heap, 0);
     // int_spqueue_push(&my_heap, 1);
     // int_spqueue_push(&my_heap, 4);

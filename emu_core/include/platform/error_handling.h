@@ -4,6 +4,6 @@
 #include <stdnoreturn.h>
 #include <emu_error.h>
 
-noreturn void emu_die(error_code_t code, const char *msg);
+void emu_die(error_code_t code, const char *msg);
 
 #endif

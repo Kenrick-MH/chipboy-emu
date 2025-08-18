@@ -50,7 +50,7 @@ void cpu_tick()
     
         return;
     }
-    
+        
     
     uint8_t opcode = cpu_fetch();
     INSTR_FUNC op_func = optable[opcode];

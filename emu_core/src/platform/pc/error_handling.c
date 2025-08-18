@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-noreturn void emu_die(error_code_t code, const char *msg)
+void emu_die(error_code_t code, const char *msg)
 {
     printf(
         "A fatal error encountered!\n"
