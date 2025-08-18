@@ -14,6 +14,14 @@
 #define __spqueue_comparator__(type) type##_spqueue_comparator_fn
 #define __spqueue_func__(type, name) type##_spqueue_##name
 #define static_pqueue_create(type)  __spqueue_func__(type, create)
+#define static_pqueue_struct(type, max_size, dat_ptr, comp_fn)  \
+        (static_pqueue(type)){                                                    \
+        .max_len = (max_size),                                                         \
+        .len = 0,                                                                    \
+        .comparator = (comp_fn),                                                          \
+        .data = (dat_ptr),                                                                \
+        .mts = &__spqueue_methods__(type)                                        \
+    };                                                                               \
 
 #define DECL_STATIC_PQUEUE_TYPE(type)                                                \
 typedef struct static_pqueue(type) static_pqueue(type);                              \

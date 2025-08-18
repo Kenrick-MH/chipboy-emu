@@ -7,7 +7,7 @@
 typedef struct device_event_t {
     uint64_t timestamp; 
     error_code_t(* exec_event)();
-} device_event;
+} device_event_t;
 
 void scheduler_init();
 
@@ -17,6 +17,6 @@ void execute_next_event();
 /**
  *  Schedules the next event in the event queue
  */
-void schedule_next_event(device_event event);
+void schedule_next_event(device_event_t event);
 
 #endif // SCHEDULE_H

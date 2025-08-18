@@ -1,6 +1,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 #include <iostream>
+#include <queue>
 #include <stdio.h>
 
 extern "C" {
@@ -49,10 +50,10 @@ TEST_CASE("Priority Queue Init") {
 TEST_CASE("Priority Queue Push/Pop") {
     int buf[5];
     static_pqueue(int) pq = static_pqueue_create(int)(5, buf, int_min_comparator);
-    
+
     REQUIRE(pq.max_len == 5);
     auto code = setjmp(jump_buf);
-    if (code == 0){
+    if (code == 0){   print_int_arr(buf, 5);
         pq.mts->pop(&pq);
         FAIL("THIS SHOULD ERROR OUT");
     } 
@@ -84,8 +85,6 @@ TEST_CASE("Priority Queue Push/Pop") {
     REQUIRE(popped == 2);
     REQUIRE(pq.len == 4);
     
-
-
     REQUIRE(pq.mts->pop(&pq) == 4);
     REQUIRE(pq.len == 3);
 
