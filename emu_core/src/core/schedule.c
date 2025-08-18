@@ -58,24 +58,3 @@ void schedule_next_event(device_event_t event)
 
     event_pqueue.mts->push(&event_pqueue, event);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

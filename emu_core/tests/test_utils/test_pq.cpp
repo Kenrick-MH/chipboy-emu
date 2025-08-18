@@ -67,8 +67,6 @@ TEST_CASE("Priority Queue Push/Pop") {
     pq.mts->push(&pq, 4);
     pq.mts->push(&pq, 6);
 
-    // pq.mts->push(&pq, 10);
-    std::cout << "PQ Len : " << pq.len << std::endl;
     code = setjmp(jump_buf);
     if (code == 0){
         pq.mts->push(&pq, 10);
@@ -80,14 +78,13 @@ TEST_CASE("Priority Queue Push/Pop") {
     REQUIRE(pq.mts->front(&pq) == 2);
     auto popped = pq.mts->pop(&pq);
 
-    print_int_arr(buf, 5);
-
     REQUIRE(popped == 2);
     REQUIRE(pq.len == 4);
     
     REQUIRE(pq.mts->pop(&pq) == 4);
     REQUIRE(pq.len == 3);
 
+    /* After a bit of popping, push */
     pq.mts->push(&pq, 1);
     REQUIRE(pq.len == 4);
 

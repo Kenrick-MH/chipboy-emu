@@ -13,11 +13,8 @@
 typedef struct bus
 {
     /* Array of master-slave connections, and size */
-    master_slave_conn_t **connections;
-    const unsigned connections_size;
-
-
-
+    master_slave_conn_t *connections[MAX_DEVICE_NUMBER];
+    unsigned connections_size;
 } bus_context_t;
 
 /*
